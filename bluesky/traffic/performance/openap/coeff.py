@@ -4,6 +4,7 @@ import pandas as pd
 import bluesky as bs
 from bluesky import stack
 
+from openap import prop, WRAP, drag
 
 bs.settings.set_variable_defaults(perf_path_openap="performance/OpenAP")
 
@@ -33,6 +34,7 @@ class Coefficient:
                     continue
                 self.synodict[acmod] = synomod
 
+        self.actypes_fixwing = prop.available_aircraft() # fixed wing types from openap
         self.acs_fixwing = self._load_all_fixwing_flavor()
         self.engines_fixwing = pd.read_csv(bs.resource(bs.settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
         self.limits_fixwing = self._load_all_fixwing_envelop()
@@ -40,39 +42,31 @@ class Coefficient:
         self.acs_rotor = self._load_all_rotor_flavor()
         self.limits_rotor = self._load_all_rotor_envelop()
 
-        self.actypes_fixwing = list(self.acs_fixwing.keys())
         self.actypes_rotor = list(self.acs_rotor.keys())
 
         df = pd.read_csv(bs.resource(bs.settings.perf_path_openap) / "fixwing/dragpolar.csv", index_col="mdl")
         self.dragpolar_fixwing = df.to_dict(orient="index")
         self.dragpolar_fixwing["NA"] = df.mean().to_dict()
+        # self.dragpolar_fixwing = self._load_fixedwing_dragpolar()
 
     def _load_all_fixwing_flavor(self):
         import warnings
-
         warnings.simplefilter("ignore")
 
-        # read fixwing aircraft and engine files
-        allengines = pd.read_csv(bs.resource(bs.settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
-        allengines["name"] = allengines["name"].str.upper()
-        acs = json.load(open(bs.resource(bs.settings.perf_path_openap) / "fixwing/aircraft.json", "r"))
-        acs.pop("__comment")
-        acs_ = {}
-
-        for mdl, ac in acs.items():
-            acengines = ac["engines"]
-            acs_[mdl.upper()] = ac.copy()
-            acs_[mdl.upper()]["lifttype"] = LIFT_FIXWING
-            acs_[mdl.upper()]["engines"] = {}
-
-            for e in acengines:
-                e = e.strip().upper()
-                selengine = allengines[allengines["name"].str.startswith(e)]
-                if selengine.shape[0] >= 1:
-                    engine = json.loads(selengine.iloc[-1, :].to_json())
-                    acs_[mdl.upper()]["engines"][engine["name"]] = engine
-
-        return acs_
+        # load fixwing aircraft and engine from openap
+        acs = {}
+        # match acs_ with openap native data
+        for mdl in self.actypes_fixwing:
+            ac = prop.aircraft(mdl)
+            acs[mdl.upper()] = ac.copy()
+            engines = []
+            engines.append(prop.engine(ac['engine']['default']))
+            # options can have repeated strings as default or dicts (with model variant as key), do we handle this?
+            # engines.append([prop.engine(e) for e in ac_['engine']['options']])
+            acs[mdl.upper()]['engines'] = {}
+            for e in engines:
+                acs[mdl.upper()]['engines'][e['name']] = e.copy()
+        return acs
 
     def _load_all_rotor_flavor(self):
         # read rotor aircraft
@@ -85,61 +79,61 @@ class Coefficient:
         return acs_
 
     def _load_all_fixwing_envelop(self):
-        """load aircraft envelop from the model database,
+        """load aircraft envelop from the openap database,
         All unit in SI"""
+        _MAX = 'maximum'
+        _MIN = 'minimum'
+        _OPT = 'default'
         limits_fixwing = {}
-        for mdl, ac in self.acs_fixwing.items():
-            fenv = bs.resource(bs.settings.perf_path_openap) / "fixwing/wrap" / (mdl.lower() + ".txt")
+        for mdl in self.actypes_fixwing:
+            wrap = WRAP(ac=mdl)
+            mdl = mdl.upper()
+            limits_fixwing[mdl] = {}
+            limits_fixwing[mdl]["vminto"] = wrap.takeoff_speed()[_MIN]
+            limits_fixwing[mdl]["vmaxto"] = wrap.takeoff_speed()[_MAX]
+            limits_fixwing[mdl]["vminic"] = wrap.initclimb_vcas()[_MIN]
+            limits_fixwing[mdl]["vmaxic"] = wrap.initclimb_vcas()[_MAX]
+            limits_fixwing[mdl]["vminer"] = min(
+                wrap.initclimb_vcas()[_MIN],
+                wrap.climb_const_vcas()[_MIN],
+                wrap.cruise_mean_vcas()[_MIN],
+                wrap.descent_const_vcas()[_MIN],
+                wrap.finalapp_vcas()[_MIN],
+            )
+            limits_fixwing[mdl]["vmaxer"] = max(
+                wrap.initclimb_vcas()[_MAX],
+                wrap.climb_const_vcas()[_MAX],
+                wrap.cruise_mean_vcas()[_MAX],
+                wrap.descent_const_vcas()[_MAX],
+                wrap.finalapp_vcas()[_MAX],
+            )
+            limits_fixwing[mdl]["vminap"] = wrap.finalapp_vcas()[_MIN]
+            limits_fixwing[mdl]["vmaxap"] = wrap.finalapp_vcas()[_MAX]
+            limits_fixwing[mdl]["vminld"] = wrap.landing_speed()[_MIN]
+            limits_fixwing[mdl]["vmaxld"] = wrap.landing_speed()[_MAX]
 
-            if fenv.is_file():
-                df = pd.read_fwf(fenv).set_index("variable")
-                limits_fixwing[mdl] = {}
-                limits_fixwing[mdl]["vminto"] = df.loc["to_v_lof"]["min"]
-                limits_fixwing[mdl]["vmaxto"] = df.loc["to_v_lof"]["max"]
-                limits_fixwing[mdl]["vminic"] = df.loc["ic_va_avg"]["min"]
-                limits_fixwing[mdl]["vmaxic"] = df.loc["ic_va_avg"]["max"]
-                limits_fixwing[mdl]["vminer"] = min(
-                    df.loc["ic_va_avg"]["min"],
-                    df.loc["cl_v_cas_const"]["min"],
-                    df.loc["cr_v_cas_mean"]["min"],
-                    df.loc["de_v_cas_const"]["min"],
-                    df.loc["fa_va_avg"]["min"],
-                )
-                limits_fixwing[mdl]["vmaxer"] = max(
-                    df.loc["ic_va_avg"]["max"],
-                    df.loc["cl_v_cas_const"]["max"],
-                    df.loc["cr_v_cas_mean"]["max"],
-                    df.loc["de_v_cas_const"]["max"],
-                    df.loc["fa_va_avg"]["max"],
-                )
-                limits_fixwing[mdl]["vminap"] = df.loc["fa_va_avg"]["min"]
-                limits_fixwing[mdl]["vmaxap"] = df.loc["fa_va_avg"]["max"]
-                limits_fixwing[mdl]["vminld"] = df.loc["ld_v_app"]["min"]
-                limits_fixwing[mdl]["vmaxld"] = df.loc["ld_v_app"]["max"]
+            limits_fixwing[mdl]["vmo"] = limits_fixwing[mdl]["vmaxer"]
+            limits_fixwing[mdl]["mmo"] = wrap.cruise_max_mach()[_OPT]
 
-                limits_fixwing[mdl]["vmo"] = limits_fixwing[mdl]["vmaxer"]
-                limits_fixwing[mdl]["mmo"] = df.loc["cr_v_mach_max"]["opt"]
+            limits_fixwing[mdl]["hmax"] = wrap.cruise_max_alt()[_OPT] * 1000.0
+            limits_fixwing[mdl]["crosscl"] = wrap.climb_cross_alt_conmach()[_OPT]
+            limits_fixwing[mdl]["crossde"] = wrap.descent_const_vcas()[_OPT]
 
-                limits_fixwing[mdl]["hmax"] = df.loc["cr_h_max"]["opt"] * 1000
-                limits_fixwing[mdl]["crosscl"] = df.loc["cl_h_mach_const"]["opt"]
-                limits_fixwing[mdl]["crossde"] = df.loc["de_h_cas_const"]["opt"]
+            limits_fixwing[mdl]["axmax"] = wrap.takeoff_acceleration()[_MAX]
 
-                limits_fixwing[mdl]["axmax"] = df.loc["to_acc_tof"]["max"]
+            limits_fixwing[mdl]["vsmax"] = max(
+                wrap.initclimb_vs()[_MAX],
+                wrap.climb_vs_pre_concas()[_MAX],
+                wrap.climb_vs_concas()[_MAX],
+                wrap.climb_vs_conmach()[_MAX],
+            )
 
-                limits_fixwing[mdl]["vsmax"] = max(
-                    df.loc["ic_vs_avg"]["max"],
-                    df.loc["cl_vs_avg_pre_cas"]["max"],
-                    df.loc["cl_vs_avg_cas_const"]["max"],
-                    df.loc["cl_vs_avg_mach_const"]["max"],
-                )
-
-                limits_fixwing[mdl]["vsmin"] = min(
-                    df.loc["ic_vs_avg"]["min"],
-                    df.loc["de_vs_avg_after_cas"]["min"],
-                    df.loc["de_vs_avg_cas_const"]["min"],
-                    df.loc["de_vs_avg_mach_const"]["min"],
-                )
-
+            limits_fixwing[mdl]["vsmin"] = min(
+                wrap.initclimb_vs()[_MIN],
+                wrap.climb_vs_pre_concas()[_MIN],
+                wrap.climb_vs_concas()[_MIN],
+                wrap.climb_vs_conmach()[_MIN],
+            )
         # create envolop based on synonym
         for mdl in self.synodict.keys():
             if mdl not in limits_fixwing:
@@ -167,3 +161,14 @@ class Coefficient:
                 stack.echo(warn)
 
         return limits_rotor
+    
+    def _load_fixedwing_dragpolar(self):
+        dragpolar = {}
+        for mdl in self.actypes_fixwing:
+            mdl = mdl.upper()
+            _polar = drag.Drag(mdl).polar
+            dragpolar[mdl]['cd0_clean'] = _polar['clean']['cd0']
+            dragpolar[mdl]['k_clean'] = _polar['clean']['k']
+            dragpolar[mdl]['e_clean'] = _polar['clean']['e']
+            # openap relies on flap angle to caculate drag, no TO and LD cd available
+            # dragpolar[mdl]['cd0_to'] = 

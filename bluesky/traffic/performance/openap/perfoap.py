@@ -97,13 +97,13 @@ class OpenAP(PerfBase):
 
             self.lifttype[-n:] = coeff.LIFT_FIXWING
 
-            self.Sref[-n:] = self.coeff.acs_fixwing[actype]["wa"]
+            self.Sref[-n:] = self.coeff.acs_fixwing[actype]["wing"]['area']
             self.mass[-n:] = 0.5 * (
                 self.coeff.acs_fixwing[actype]["oew"]
                 + self.coeff.acs_fixwing[actype]["mtow"]
             )
 
-            self.engnum[-n:] = int(self.coeff.acs_fixwing[actype]["n_engines"])
+            self.engnum[-n:] = int(self.coeff.acs_fixwing[actype]["engine"]["number"])
 
             self.ff_coeff_a[-n:] = coeff_a
             self.ff_coeff_b[-n:] = coeff_b
@@ -112,7 +112,7 @@ class OpenAP(PerfBase):
             all_ac_engs = list(self.coeff.acs_fixwing[actype]["engines"].keys())
             self.engthrmax[-n:] = self.coeff.acs_fixwing[actype]["engines"][
                 all_ac_engs[0]
-            ]["thr"]
+            ]["max_thrust"]
             self.engbpr[-n:] = self.coeff.acs_fixwing[actype]["engines"][
                 all_ac_engs[0]
             ]["bpr"]
