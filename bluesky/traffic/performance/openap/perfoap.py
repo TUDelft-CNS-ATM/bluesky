@@ -6,6 +6,7 @@ from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph
 
+from openap import Drag, FuelFlow
 
 class OpenAP(PerfBase):
     """
@@ -58,16 +59,6 @@ class OpenAP(PerfBase):
         super().create(n)
 
         actype = bs.traf.type[-1].upper()
-
-        # Check synonym file if not in open ap actypes
-        if (actype not in self.coeff.actypes_rotor) and (
-            actype not in self.coeff.dragpolar_fixwing
-        ):
-            if actype in self.coeff.synodict.keys():
-                # warn = f"Warning: {actype} replaced by {self.coeff.synodict[actype]}"
-                # print(warn)
-                # stack.echo(warn)
-                actype = self.coeff.synodict[actype]
 
         # initialize aircraft / engine performance parameters
         # check fixwing or rotor, default to fixwing
@@ -235,7 +226,7 @@ class OpenAP(PerfBase):
             self.drag[idx_fixwing] + self.mass[idx_fixwing] * bs.traf.ax[idx_fixwing]
         )
 
-        # ----- compute duel flow -----
+        # ----- compute fuel flow -----
         thrustratio_fixwing = self.thrust[idx_fixwing] / (
             self.engnum[idx_fixwing] * self.engthrmax[idx_fixwing]
         )

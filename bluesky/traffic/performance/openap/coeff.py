@@ -5,6 +5,7 @@ import bluesky as bs
 from bluesky import stack
 
 from openap import prop, WRAP, drag
+import numpy as np
 
 bs.settings.set_variable_defaults(perf_path_openap="performance/OpenAP")
 
@@ -18,36 +19,15 @@ ENG_TYPE_TS = 3  # turboshlft, rotor
 
 class Coefficient:
     def __init__(self):
-        # Load synonyms.dat text file into dictionary
-        self.synodict = {}
-        with open(bs.resource(bs.settings.perf_path_openap) / 'synonym.dat', "r") as f_syno:
-            for line in f_syno.readlines():
-                if line.count("#") > 0:
-                    dataline, comment = line.split("#")
-                else:
-                    dataline = line.strip("\n")
-                acmod, synomod = dataline.split("=")
-                acmod = acmod.strip().upper()
-                synomod = synomod.strip().upper()
-
-                if acmod == synomod:
-                    continue
-                self.synodict[acmod] = synomod
-
-        self.actypes_fixwing = prop.available_aircraft() # fixed wing types from openap
+        self.actypes_fixwing = prop.available_aircraft(use_synonym=True) # fixed wing types from openap
         self.acs_fixwing = self._load_all_fixwing_flavor()
-        self.engines_fixwing = pd.read_csv(bs.resource(bs.settings.perf_path_openap) / "fixwing/engines.csv", encoding="utf-8")
         self.limits_fixwing = self._load_all_fixwing_envelop()
 
         self.acs_rotor = self._load_all_rotor_flavor()
         self.limits_rotor = self._load_all_rotor_envelop()
-
         self.actypes_rotor = list(self.acs_rotor.keys())
 
-        df = pd.read_csv(bs.resource(bs.settings.perf_path_openap) / "fixwing/dragpolar.csv", index_col="mdl")
-        self.dragpolar_fixwing = df.to_dict(orient="index")
-        self.dragpolar_fixwing["NA"] = df.mean().to_dict()
-        # self.dragpolar_fixwing = self._load_fixedwing_dragpolar()
+        self.dragpolar_fixwing = self._load_fixedwing_dragpolar()
 
     def _load_all_fixwing_flavor(self):
         import warnings
@@ -57,7 +37,7 @@ class Coefficient:
         acs = {}
         # match acs_ with openap native data
         for mdl in self.actypes_fixwing:
-            ac = prop.aircraft(mdl)
+            ac = prop.aircraft(mdl, use_synonym=True)
             acs[mdl.upper()] = ac.copy()
             engines = []
             engines.append(prop.engine(ac['engine']['default']))
@@ -134,10 +114,6 @@ class Coefficient:
                 wrap.climb_vs_concas()[_MIN],
                 wrap.climb_vs_conmach()[_MIN],
             )
-        # create envolop based on synonym
-        for mdl in self.synodict.keys():
-            if mdl not in limits_fixwing:
-                limits_fixwing[mdl] = limits_fixwing[self.synodict[mdl]]
 
         return limits_fixwing
 
@@ -164,11 +140,37 @@ class Coefficient:
     
     def _load_fixedwing_dragpolar(self):
         dragpolar = {}
+        # openap relies on flap angles to caculate nonclean drag, BS doesn't have a flap angle concept
+        # we assume 15 degrees flap during takeoff and 40 degrees during landing
+        flap_to = 15 # degs
+        flap_ld = 40 # degs
+
         for mdl in self.actypes_fixwing:
             mdl = mdl.upper()
-            _polar = drag.Drag(mdl).polar
-            dragpolar[mdl]['cd0_clean'] = _polar['clean']['cd0']
-            dragpolar[mdl]['k_clean'] = _polar['clean']['k']
-            dragpolar[mdl]['e_clean'] = _polar['clean']['e']
-            # openap relies on flap angle to caculate drag, no TO and LD cd available
-            # dragpolar[mdl]['cd0_to'] = 
+            _polar = drag.Drag(mdl, use_synonym=True).polar
+            dragpolar[mdl] = {}
+            dragpolar[mdl]["cd0_clean"] = _polar["clean"]["cd0"]
+            dragpolar[mdl]["k_clean"] = _polar["clean"]["k"]
+            dragpolar[mdl]["e_clean"] = _polar["clean"]["e"]
+
+            lambda_f = _polar["flaps"]["lambda_f"]
+            cfc = _polar["flaps"]["cf/c"]
+            SfS = _polar["flaps"]["Sf/S"]
+            delta_cd_flap_to = lambda_f * (cfc)**1.38 * SfS * np.sin(np.deg2rad(flap_to)) ** 2
+            delta_cd_flap_ld = lambda_f * (cfc)**1.38 * SfS * np.sin(np.deg2rad(flap_ld)) ** 2
+            dragpolar[mdl]["cd0_to"] = _polar["clean"]["cd0"] + delta_cd_flap_to
+            dragpolar[mdl]["cd0_ld"] = _polar["clean"]["cd0"] + delta_cd_flap_ld
+
+            if self.acs_fixwing[mdl]['engine']['mount'] == "rear":
+                delta_e_flap_to = 0.0046 * flap_to
+                delta_e_flap_ld = 0.0046 * flap_ld
+            else:
+                delta_e_flap_to = 0.0026 * flap_to
+                delta_e_flap_ld = 0.0026 * flap_ld
+            
+            ar = self.acs_fixwing[mdl]["wing"]["span"] ** 2 / self.acs_fixwing[mdl]["wing"]["area"]
+            dragpolar[mdl]["k_to"] = 1 / (1 / _polar["clean"]["k"] + np.pi * ar * delta_e_flap_to)
+            dragpolar[mdl]["k_ld"] = 1 / (1 / _polar["clean"]["k"] + np.pi * ar * delta_e_flap_ld)
+            dragpolar[mdl]["delta_cd_gear"] = _polar["gears"]
+
+        return dragpolar
