@@ -8,7 +8,8 @@ dependencies = [
     "pandas", # >= 2.2.0",
     "msgpack >= 1.0.0",
     "zmq",
-    "bluesky-navdata"
+    "bluesky-navdata",
+    "openap",
 ]
 
 authors = [
