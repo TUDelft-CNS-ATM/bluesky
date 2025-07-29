@@ -249,6 +249,7 @@ class Autopilot(Entity, replaceable=True):
                                        turnrad,turnspd,turnhdgr, flyturn, flyby)  # update turn distance for VNAV
 
             # Get flyturn switches and data
+            bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
             bs.traf.actwp.flyturn[i]      = flyturn
             bs.traf.actwp.turnrad[i]      = turnrad
             bs.traf.actwp.turnspd[i]      = turnspd
@@ -262,7 +263,6 @@ class Autopilot(Entity, replaceable=True):
             bs.traf.actwp.turntonextwp[i]   = False
 
             # Keep both turning speeds: turn to leg and turn from leg
-            bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
             if bs.traf.actwp.flyturn[i]:
                 bs.traf.actwp.turnspd[i] = turnspd                  # new turnspd, turning by next waypoint
             else:
