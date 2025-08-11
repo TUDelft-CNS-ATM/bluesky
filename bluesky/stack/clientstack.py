@@ -68,7 +68,7 @@ def process():
 
         elif Stack.sender_id is None:
             # If sender_id is None, this stack command originated from the gui. Send it on to the sim
-            forward()
+            forward(target_id=bs.net.act_id)
         # -------------------------------------------------------------------
         # Command not found
         # -------------------------------------------------------------------
