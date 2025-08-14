@@ -6,6 +6,7 @@ from bluesky.traffic.performance.perfbase import PerfBase
 from bluesky.traffic.performance.openap import coeff, thrust
 from bluesky.traffic.performance.openap import phase as ph
 
+from openap import Drag, FuelFlow
 
 class OpenAP(PerfBase):
     """
@@ -59,16 +60,6 @@ class OpenAP(PerfBase):
 
         actype = bs.traf.type[-1].upper()
 
-        # Check synonym file if not in open ap actypes
-        if (actype not in self.coeff.actypes_rotor) and (
-            actype not in self.coeff.dragpolar_fixwing
-        ):
-            if actype in self.coeff.synodict.keys():
-                # warn = f"Warning: {actype} replaced by {self.coeff.synodict[actype]}"
-                # print(warn)
-                # stack.echo(warn)
-                actype = self.coeff.synodict[actype]
-
         # initialize aircraft / engine performance parameters
         # check fixwing or rotor, default to fixwing
         if actype in self.coeff.actypes_rotor:
@@ -97,13 +88,13 @@ class OpenAP(PerfBase):
 
             self.lifttype[-n:] = coeff.LIFT_FIXWING
 
-            self.Sref[-n:] = self.coeff.acs_fixwing[actype]["wa"]
+            self.Sref[-n:] = self.coeff.acs_fixwing[actype]["wing"]['area']
             self.mass[-n:] = 0.5 * (
                 self.coeff.acs_fixwing[actype]["oew"]
                 + self.coeff.acs_fixwing[actype]["mtow"]
             )
 
-            self.engnum[-n:] = int(self.coeff.acs_fixwing[actype]["n_engines"])
+            self.engnum[-n:] = int(self.coeff.acs_fixwing[actype]["engine"]["number"])
 
             self.ff_coeff_a[-n:] = coeff_a
             self.ff_coeff_b[-n:] = coeff_b
@@ -112,7 +103,7 @@ class OpenAP(PerfBase):
             all_ac_engs = list(self.coeff.acs_fixwing[actype]["engines"].keys())
             self.engthrmax[-n:] = self.coeff.acs_fixwing[actype]["engines"][
                 all_ac_engs[0]
-            ]["thr"]
+            ]["max_thrust"]
             self.engbpr[-n:] = self.coeff.acs_fixwing[actype]["engines"][
                 all_ac_engs[0]
             ]["bpr"]
@@ -235,7 +226,7 @@ class OpenAP(PerfBase):
             self.drag[idx_fixwing] + self.mass[idx_fixwing] * bs.traf.ax[idx_fixwing]
         )
 
-        # ----- compute duel flow -----
+        # ----- compute fuel flow -----
         thrustratio_fixwing = self.thrust[idx_fixwing] / (
             self.engnum[idx_fixwing] * self.engthrmax[idx_fixwing]
         )
