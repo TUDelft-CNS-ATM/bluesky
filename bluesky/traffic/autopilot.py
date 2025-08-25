@@ -733,7 +733,7 @@ class Autopilot(Entity, replaceable=True):
         return True
 
     @stack.command(name='DEST')
-    def setdest(self, acidx: 'acid', wpname:'wpt' = None):
+    def setdest(self, acidx: 'acid', wpname:'wpt' = None, casmach: 'spd'= None):
         ''' DEST acid, latlon/airport
 
             Set destination of aircraft, aircraft wil fly to this airport. '''
@@ -760,9 +760,12 @@ class Autopilot(Entity, replaceable=True):
             lat = bs.navdb.aptlat[apidx]
             lon = bs.navdb.aptlon[apidx]
 
+        # Check if a speed constraint was given at destination
+        dest_spd = -999 if casmach is None else casmach
+
         self.dest[acidx] = wpname
         iwp = route.addwpt(acidx, self.dest[acidx], route.dest,
-                           lat, lon, 0.0, bs.traf.cas[acidx])
+                           lat, lon, 0.0, dest_spd)
         # If only waypoint: activate
         if (iwp == 0) or (self.orig[acidx] != "" and route.nwp == 2):
             bs.traf.actwp.lat[acidx] = route.wplat[iwp]
