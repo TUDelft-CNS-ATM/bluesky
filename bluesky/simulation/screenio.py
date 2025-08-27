@@ -89,7 +89,7 @@ class ScreenIO(Entity):
 
             elif prev_selected_acid is not None:
                 # selecting the same aircraft again so this means toggle the route
-                self.client_route.clear()
+                self.client_route.pop(stack.sender())
                 self.pub_route.send_delete(**{'acid' : acid})
         return True
 
