@@ -104,7 +104,7 @@ class Autopilot(Entity, replaceable=True):
         self.vsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
         self.bankdef[-n:] = np.radians(25.) # default bank angle
         self.cruisespd[-n:] = -999. # default cruise speed
-        self.turn180pref[-n:] = 0  # default: use system default (clockwise)
+        self.turn180pref[-n:] = 0  # default: no direction chosen
 
         # Route objects
         for ridx, acid in enumerate(bs.traf.id[-n:]):
