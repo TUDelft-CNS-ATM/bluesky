@@ -67,6 +67,9 @@ class Autopilot(Entity, replaceable=True):
             
             # Currently used roll/bank angle [rad]
             self.turnphi = np.array([])  # [rad] bank angle setting of autopilot
+            
+            # Turn direction preference for 180-degree turns: 1=clockwise, -1=counterclockwise, 0=default
+            self.turn180pref = np.array([])  # turn direction preference for 180-degree turns
 
             # Route objects
             self.route = []
@@ -101,6 +104,7 @@ class Autopilot(Entity, replaceable=True):
         self.vsdef[-n:] = 1500. * fpm   # default vertical speed of autopilot
         self.bankdef[-n:] = np.radians(25.) # default bank angle
         self.cruisespd[-n:] = -999. # default cruise speed
+        self.turn180pref[-n:] = 0  # default: use system default (clockwise)
 
         # Route objects
         for ridx, acid in enumerate(bs.traf.id[-n:]):
@@ -947,6 +951,85 @@ class Autopilot(Entity, replaceable=True):
                 self.swtod[i] = False
         if flag is None:
             return True, '\n'.join(output)
+
+    @stack.command(name='HDG180')
+    def selhdg180cmd(self, idx: 'acid', direction: str = 'CW'):
+        """ HDG180 acid,[CW/CCW]
+        
+            Turn aircraft 180 degrees with explicit turn direction.
+            direction: 'CW' for clockwise, 'CCW' for counterclockwise. 
+            Default is CW when called. """
+        if not isinstance(idx, Collection):
+            idx = np.array([idx])
+            
+        # Calculate 180-degree opposite heading for each aircraft
+        target_hdg = (bs.traf.hdg[idx] + 180) % 360
+        
+        # Set turn preference based on direction parameter
+        direction = direction.upper()
+        if direction == 'CW':
+            self.turn180pref[idx] = 1  # clockwise
+        elif direction == 'CCW':
+            self.turn180pref[idx] = -1  # counterclockwise
+        else:
+            return False, f"Invalid direction '{direction}'. Use 'CW' or 'CCW'"
+            
+        # Set the heading (same logic as regular HDG command)
+        if bs.traf.wind.winddim > 0:
+            ab50 = bs.traf.alt[idx] > 50.0 * ft
+            bel50 = np.logical_not(ab50)
+            iab = idx[ab50]
+            ibel = idx[bel50]
+
+            if len(iab) > 0:
+                tasnorth = bs.traf.tas[iab] * np.cos(np.radians(target_hdg[ab50]))
+                taseast = bs.traf.tas[iab] * np.sin(np.radians(target_hdg[ab50]))
+                vnwnd, vewnd = bs.traf.wind.getdata(bs.traf.lat[iab], bs.traf.lon[iab], bs.traf.alt[iab])
+                gsnorth = tasnorth + vnwnd
+                gseast = taseast + vewnd
+                self.trk[iab] = np.degrees(np.arctan2(gseast, gsnorth))%360.
+            if len(ibel) > 0:
+                self.trk[ibel] = target_hdg[bel50]
+        else:
+            self.trk[idx] = target_hdg
+
+        bs.traf.swlnav[idx] = False
+        return True
+
+    @stack.command(name='TURNPREF')
+    def setturnpref(self, idx: 'acid', direction: str = None):
+        """ TURNPREF acid,[CW/CCW]
+        
+            Set or get 180-degree turn preference for aircraft.
+            CW=clockwise, CCW=counterclockwise, 
+            DEFAULT=no preference  """
+        if not isinstance(idx, Collection):
+            idx = np.array([idx])
+            
+        if direction is None:
+            # Return current setting
+            output = []
+            for i in idx:
+                pref = self.turn180pref[i]
+                if pref > 0:
+                    pref_str = "CW"
+                elif pref < 0:
+                    pref_str = "CCW"
+                else:
+                    pref_str = "DEFAULT"
+                output.append(f"{bs.traf.id[i]}: TURNPREF is {pref_str}")
+            return True, '\n'.join(output)
+            
+        direction = direction.upper()
+        if direction == 'CW':
+            self.turn180pref[idx] = 1
+        elif direction == 'CCW':
+            self.turn180pref[idx] = -1
+        elif direction == 'DEFAULT':
+            self.turn180pref[idx] = 0
+        else:
+            return False, f"Invalid direction '{direction}'. Use 'CW', 'CCW', or 'DEFAULT'"
+        return True
 
 
 def calcvrta(v0, dx, deltime, trafax):
