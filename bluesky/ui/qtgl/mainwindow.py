@@ -296,6 +296,8 @@ class MainWindow(QMainWindow, Base):
             - factor: IN/OUT to zoom in/out by a factor sqrt(2), or
                       'factor' to set zoom to specific value.
         '''
+        if not isinstance(factor, float):
+            return False, f'Argument error.\nUsage:\nZOOM IN/OUT/factor'
         store = ss.get(group='panzoom')
         store.zoom = factor
         self.panzoom_event.emit(store)
