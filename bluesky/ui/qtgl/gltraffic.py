@@ -272,7 +272,7 @@ class Traffic(glh.RenderObject, layer=100):
         ''' Update GPU buffers with route data from simulation. '''
         if not self.initialized:
             return
-        if ctx.action == ctx.action.Reset or ctx.action == ctx.action.ActChange:# TODO hack
+        if ctx.action in [ctx.action.Reset, ctx.action.ActChange, ctx.action.Delete]:
             # Simulation reset: Clear all entries
             self.route.set_vertex_count(0)
             self.routelbl.n_instances = 0
