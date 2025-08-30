@@ -246,14 +246,33 @@ class Autopilot(Entity, replaceable=True):
             else:
                 local_next_qdr = bs.traf.actwp.next_qdr[i]
 
+
+            # check if next waypoint has a speed constraint and give that as TAS
+            nextwptspd = bs.traf.actwp.nextspd[i]
+            nextwpalt = bs.traf.actwp.nextaltco[i]
+
+            if nextwptspd > 0 and nextwpalt > 0:
+            # Here there is a speed constraint and altitude constraint
+                nextwpttas = cas2tas(bs.traf.actwp.nextspd[i], bs.traf.actwp.nextaltco[i])
+            elif nextwptspd > 0:
+            # Here there is only a speed constraint
+                nextwpttas = cas2tas(bs.traf.actwp.nextspd[i], bs.traf.alt[i])
+            elif nextwpalt > 0:
+            # if there is only an altitude constraint
+                nextwpttas = cas2tas(bs.traf.cas[i], bs.traf.actwp.nextaltco[i])
+            else:
+                nextwpttas = bs.traf.tas[i]
+
+
             # Calculate turn dist (and radius which we do not use now, but later) now for scalar variable [i]
-            bs.traf.actwp.turndist[i], turnrad, turnspd, turnbank, turnhdgr = \
-                bs.traf.actwp.calcturn(i, bs.traf.tas[i], qdr[i], 
-                                       local_next_qdr, turnbank, 
-                                       turnrad,turnspd,turnhdgr, flyturn, flyby)  # update turn distance for VNAV
+            turndist, turnrad, turnspd, turnbank, turnhdgr = \
+            bs.traf.actwp.calcturn(i, nextwpttas, qdr[i], 
+                                    local_next_qdr, turnbank, 
+                            turnrad,turnspd,turnhdgr, flyturn, flyby)  # update turn distance for VNAV
 
             # Get flyturn switches and data
-            bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
+            bs.traf.actwp.turndist[i]     = turndist * 1.3
+            bs.traf.actwp.oldturnspd[i]   = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
             bs.traf.actwp.flyturn[i]      = flyturn
             bs.traf.actwp.turnrad[i]      = turnrad
             bs.traf.actwp.turnspd[i]      = turnspd
