@@ -2,32 +2,24 @@
 import os
 import bluesky as bs
 from bluesky import stack
+from bluesky.core.base import Base
 from bluesky.core.walltime import Timer
 
 
-class Node:
+class Node(Base):
     def __init__(self, *args):
+        super().__init__()
         self.node_id = b'\x00' + os.urandom(4)
         self.server_id = b''
         self.act_id = None
-        self.running = True
-
-    def update(self):
-        ''' Update timers. '''
-        # Process timers
-        Timer.update_timers()
 
     @stack.command(name='QUIT', annotations='', aliases=('CLOSE', 'END', 'EXIT', 'Q', 'STOP'))
     def quit(self):
         ''' Quit the simulation process. '''
-        self.running = False
+        bs.sim.quit()
 
-    def run(self):
-        ''' Start the main loop of this node. '''
-        while self.running:
-            # Perform a simulation step
-            self.update()
-            bs.sim.step()
+    def update(self):
+        pass
 
     def connect(self):
         ''' Connect node to the BlueSky server. This does nothing in detached mode. '''
