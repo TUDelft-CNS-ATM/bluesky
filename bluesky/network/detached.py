@@ -3,7 +3,6 @@ import os
 import bluesky as bs
 from bluesky import stack
 from bluesky.core.base import Base
-from bluesky.core.walltime import Timer
 
 
 class Node(Base):
