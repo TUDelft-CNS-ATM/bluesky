@@ -1,6 +1,7 @@
 """ Node encapsulates the sim process, and manages process I/O. """
 import os
 import bluesky as bs
+from bluesky import stack
 from bluesky.core.walltime import Timer
 
 
@@ -16,11 +17,7 @@ class Node:
         # Process timers
         Timer.update_timers()
 
-    def stop(self):
-        ''' Stack stop/quit command. '''
-        # On a stack quit command, detached simulation just quits.
-        self.quit()
-
+    @stack.command(name='QUIT', annotations='', aliases=('CLOSE', 'END', 'EXIT', 'Q', 'STOP'))
     def quit(self):
         ''' Quit the simulation process. '''
         self.running = False
