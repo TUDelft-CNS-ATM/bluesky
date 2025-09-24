@@ -78,11 +78,11 @@ def loadnavdata_txt():
             else:
                 wptdata["wpfreq"].append(0.0)
 
-            if wptype in ["VOR","NDB"]:
+            if wptype == "VOR":
                 wptdata["wpvar"].append(float(fields[6])) # Magnetic variation in np.degrees
                 wptdata["wpid"].append(fields[7]) # Id
 
-            elif wptype in ["DME","TACAN"]:
+            elif wptype in ["NDB", "DME","TACAN"]:
                 wptdata["wpvar"].append(0.0) # Magnetic variation not given
                 wptdata["wpid"].append(fields[7]) # Id
 
