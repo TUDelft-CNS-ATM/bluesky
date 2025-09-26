@@ -288,7 +288,7 @@ class MainWindow(QMainWindow, Base):
         self.panzoom_event.emit(store)
         return True
 
-    @stack.commandgroup(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    @stack.commandgroup(brief='ZOOM IN/OUT/factor')
     def zoom(self, factor: float):
         ''' ZOOM: Zoom in and out in the radar view. 
         

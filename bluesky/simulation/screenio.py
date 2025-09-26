@@ -76,7 +76,21 @@ class ScreenIO(Entity):
             self.route_all = acid
             self.client_route.clear()
         else:
-            self.client_route[stack.sender()] = acid
+            # here now we need to check if sender is requesting new route or old route
+            try:
+                prev_selected_acid = self.client_route[stack.sender()]
+            except KeyError:
+                # it means there is no previously selected aircraft
+                prev_selected_acid = None
+
+            if acid != prev_selected_acid:
+                # selecting a new route
+                self.client_route[stack.sender()] = acid
+
+            elif prev_selected_acid is not None:
+                # selecting the same aircraft again so this means toggle the route
+                self.client_route.pop(stack.sender())
+                self.pub_route.send_delete(**{'acid' : acid})
         return True
 
     def addnavwpt(self, name, lat, lon):

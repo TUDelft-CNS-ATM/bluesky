@@ -115,11 +115,12 @@ class Command:
     def callback(self, function):
         self._callback = FuncObject(function)
         spec = inspect.signature(function)
+        paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
+        paramspecnames = [p.name for p in paramspecs]
         self.brief = self.brief or (
-            self.name + ' ' + ','.join(spec.parameters))
+            self.name + ' ' + ','.join(paramspecnames))
         self.help = self.help or inspect.cleandoc(
             inspect.getdoc(function) or '')
-        paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
         if self.annotations:
             self.params = list()
             pos = 0
