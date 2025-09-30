@@ -73,7 +73,7 @@ class OpenAP(PerfBase):
 
         else:
             # convert to known aircraft type
-            if actype not in self.coeff.actypes_fixwing:
+            if actype.lower() not in self.coeff.actypes_fixwing:
                 # warn = f"Warning: {actype} replaced by B744"
                 # print(warn)
                 # stack.echo(warn)
@@ -166,6 +166,7 @@ class OpenAP(PerfBase):
         self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(mask)
 
     def update(self, dt):
+        print('in performance')
         """Periodic update function for performance calculations."""
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)
