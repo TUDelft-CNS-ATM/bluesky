@@ -166,7 +166,6 @@ class OpenAP(PerfBase):
         self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(mask)
 
     def update(self, dt):
-        print('in performance')
         """Periodic update function for performance calculations."""
         # update phase, infer from spd, roc, alt
         lenph1 = len(self.phase)
