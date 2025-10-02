@@ -73,7 +73,7 @@ class OpenAP(PerfBase):
 
         else:
             # convert to known aircraft type
-            if actype not in self.coeff.actypes_fixwing:
+            if actype.lower() not in self.coeff.actypes_fixwing:
                 # warn = f"Warning: {actype} replaced by B744"
                 # print(warn)
                 # stack.echo(warn)
