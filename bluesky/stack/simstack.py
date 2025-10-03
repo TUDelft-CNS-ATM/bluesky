@@ -131,6 +131,7 @@ def readscn(fname):
 
     with open(fname, "r") as fscen:
         prevline = ''
+        scenlines = []
         for line in fscen:
             line = line.strip()
             # Skip emtpy lines and comments
@@ -156,11 +157,13 @@ def readscn(fname):
                 xsec = float(ttxt[2])
                 cmdtime = ihr + imin + xsec
 
-                yield (cmdtime, line[icmdline + 1:].strip("\n"))
+                scenlines.append((cmdtime, line[icmdline + 1:].strip("\n")))
             except (ValueError, IndexError):
                 # nice try, we will just ignore this syntax error
                 if not (len(line.strip()) > 0 and line.strip()[0] == "#"):
                     print("except this:" + line)
+
+    return sorted(scenlines, key=lambda x:x[0])
 
 
 @command(aliases=('CALL',), brief="PCALL filename [REL/ABS/args]")
