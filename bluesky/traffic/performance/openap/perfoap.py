@@ -284,11 +284,12 @@ class OpenAP(PerfBase):
         )  # maximum cannot exceed MMO
 
         vs_max_with_acc = (1 - ax / self.axmax) * self.vsmax
+        vs_min_with_acc = (1 - ax / self.axmax) * self.vsmin
         allow_vs = np.where(
             (intent_vs > 0) & (intent_vs > self.vsmax), vs_max_with_acc, intent_vs
         )  # for climb with vs larger than vsmax
         allow_vs = np.where(
-            (intent_vs < 0) & (intent_vs < self.vsmin), vs_max_with_acc, allow_vs
+            (intent_vs < 0) & (intent_vs < self.vsmin), vs_min_with_acc, allow_vs
         )  # for descent with vs smaller than vsmin (negative)
         allow_vs = np.where(
             (self.phase == ph.GD) & (bs.traf.tas < self.vminto), 0, allow_vs
