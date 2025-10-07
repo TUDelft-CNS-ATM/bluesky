@@ -9,6 +9,8 @@ import socket
 import threading
 import queue
 
+import os
+
 # Local imports
 import bluesky as bs
 from bluesky.core.base import Base
@@ -124,13 +126,45 @@ class Simulation(Base):
                         self.external_mode = flag
                         send(f"OK EXT {'ON' if flag else 'OFF'}")
 
+                    
                     elif verb == "STEP":
-                        # STEP <dt>
-                        dt = float(parts[1]) if len(parts) > 1 else self.simdt
-                        self._tickq.put(dt)
-                        # Atalha: entrar em modo externo se ainda não estiver
-                        self.external_mode = True
-                        send(f"OK STEP {dt}")
+                        try:
+                            import json, datetime, os
+                            dt = float(parts[1]) if len(parts) > 1 else self.simdt
+                            self.external_mode = True
+
+                            # advance the simulation
+                            self.step(dt)
+                            send(f"OK STEP {dt}")
+
+                            # ---- build aircraft state JSON ----
+                            ac_list = []
+                            for i, acid in enumerate(bs.traf.id):
+                                ac_list.append({
+                                    "id":  str(acid),
+                                    "lat": float(bs.traf.lat[i]),
+                                    "lon": float(bs.traf.lon[i]),
+                                    "alt": float(bs.traf.alt[i]),
+                                    "gs":  float(bs.traf.gs[i]),
+                                    "hdg": float(bs.traf.hdg[i]) if hasattr(bs.traf, "hdg") else 0.0
+                                })
+
+                            state = {
+                                "simt": float(bs.sim.simt),
+                                "utc":  str(bs.sim.utc),
+                                "aircraft": ac_list
+                            }
+
+                            # send JSON + newline terminator so client can parse by line
+                            conn.sendall((json.dumps(state) + "\n").encode("utf-8"))
+
+                        except Exception as e:
+                            log_dir = os.path.join(os.getcwd(), "log")
+                            os.makedirs(log_dir, exist_ok=True)
+                            with open(os.path.join(log_dir, "simulation_errors.log"), "a") as f:
+                                f.write(f"[ERROR STEP] {datetime.datetime.now()} -> {e}\n")
+                            send(f"ERR STEP {e}")
+
 
                     elif verb == "IC":
                         # IC <caminho_do_cenario>
@@ -152,6 +186,31 @@ class Simulation(Base):
 
                     elif verb == "STATUS":
                         send(f"OK STATUS simt={self.simt:.3f} state={self.state} ntraf={bs.traf.ntraf}")
+                    
+                    elif verb == "STATE":
+                        try:
+                            import json
+                            ac_list = []
+                            for i, acid in enumerate(bs.traf.id):
+                                ac_list.append({
+                                    "id":  str(acid),
+                                    "lat": float(bs.traf.lat[i]),
+                                    "lon": float(bs.traf.lon[i]),
+                                    "alt": float(bs.traf.alt[i]),
+                                    "gs":  float(bs.traf.gs[i]),
+                                    "hdg": float(bs.traf.hdg[i]) if hasattr(bs.traf, "hdg") else 0.0
+                                })
+
+                            state = {
+                                "simt": float(bs.sim.simt),
+                                "utc":  str(bs.sim.utc),
+                                "aircraft": ac_list
+                            }
+
+                            conn.sendall((json.dumps(state) + "\n").encode("utf-8"))
+                        except Exception as e:
+                            conn.sendall(f"ERR STATE {e}\n".encode("utf-8"))
+
 
                     elif verb == "QUIT":
                         self.quit()
