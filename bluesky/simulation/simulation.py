@@ -5,6 +5,10 @@ import signal
 import numpy as np
 from random import seed
 
+import socket
+import threading
+import queue
+
 # Local imports
 import bluesky as bs
 from bluesky.core.base import Base
@@ -23,6 +27,10 @@ MINSLEEP = 1e-3
 
 # Register settings defaults
 bs.settings.set_variable_defaults(simdt=0.05)
+
+# Config extra para orquestrador (pode trocar a porta aqui)
+bs.settings.set_variable_defaults(orch_port=12000, external_tick=False)
+
 
 class Simulation(Base):
     ''' The simulation object. '''
@@ -62,9 +70,105 @@ class Simulation(Base):
         # Keep track of known clients
         self.clients = set()
 
+        # Modo de “relógio externo” + infra do socket
+        self.external_mode = bool(bs.settings.external_tick)
+        self._tickq = queue.Queue()
+        self._orch_port = int(bs.settings.orch_port)
+        self._orch_srv = None
+        self._orch_thread = None
+
     @pub_simstate.payload
     def get_state(self):
         return dict(simstate=self.state)
+    
+    def _start_orchestrator_server(self, host='127.0.0.1', port=None):
+        """Abre socket para receber comandos do orquestrador."""
+        if port is None:
+            port = self._orch_port
+        if self._orch_srv:
+            return  # já está rodando
+
+        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        srv.bind((host, port))
+        srv.listen(1)
+        self._orch_srv = srv
+        print(f"[BlueSky-Sim] Orchestrator socket listening on {host}:{port}")
+
+        def handle_client(conn):
+            def send(msg):
+                try:
+                    conn.sendall((msg + "\n").encode("utf-8"))
+                except Exception:
+                    pass
+
+            send("OK READY")
+            with conn:
+                while True:
+                    data = conn.recv(4096)
+                    if not data:
+                        break
+                    try:
+                        cmdline = data.decode("utf-8", errors="ignore").strip()
+                    except Exception:
+                        cmdline = ""
+                    if not cmdline:
+                        continue
+
+                    parts = cmdline.split()
+                    verb = parts[0].upper()
+
+                    if verb == "EXT":
+                        # EXT ON | OFF
+                        flag = (len(parts) > 1 and parts[1].upper() in ("1","ON","TRUE"))
+                        self.external_mode = flag
+                        send(f"OK EXT {'ON' if flag else 'OFF'}")
+
+                    elif verb == "STEP":
+                        # STEP <dt>
+                        dt = float(parts[1]) if len(parts) > 1 else self.simdt
+                        self._tickq.put(dt)
+                        # Atalha: entrar em modo externo se ainda não estiver
+                        self.external_mode = True
+                        send(f"OK STEP {dt}")
+
+                    elif verb == "IC":
+                        # IC <caminho_do_cenario>
+                        scen = cmdline[len("IC "):].strip()
+                        bs.stack.stack(f"IC {scen}")
+                        send("OK IC")
+
+                    elif verb == "OP":
+                        self.op()
+                        send("OK OP")
+
+                    elif verb == "HOLD":
+                        self.hold()
+                        send("OK HOLD")
+
+                    elif verb == "RESET":
+                        self.reset()
+                        send("OK RESET")
+
+                    elif verb == "STATUS":
+                        send(f"OK STATUS simt={self.simt:.3f} state={self.state} ntraf={bs.traf.ntraf}")
+
+                    elif verb == "QUIT":
+                        self.quit()
+                        send("OK QUIT")
+                        break
+
+                    else:
+                        send("ERR UNKNOWN")
+
+        def accept_loop():
+            while True:
+                conn, _ = srv.accept()
+                t = threading.Thread(target=handle_client, args=(conn,), daemon=True)
+                t.start()
+
+        self._orch_thread = threading.Thread(target=accept_loop, daemon=True)
+        self._orch_thread.start()
 
     def run(self):
         ''' Start the main loop of this simulation. '''
@@ -74,6 +178,11 @@ class Simulation(Base):
         # is received
         signal.signal(signal.SIGINT, lambda *args: self.quit())
         signal.signal(signal.SIGTERM, lambda *args: self.quit())
+
+        try:
+            self._start_orchestrator_server()
+        except OSError as e:
+            print(f"[BlueSky-Sim] Orchestrator socket disabled: {e}")
 
         while self.state != bs.END:
             # Process timers
@@ -130,6 +239,22 @@ class Simulation(Base):
         ''' Perform a simulation update. 
             This involves performing a simulation step, and when running in real-time mode
             (or a multiple thereof), sleeping an appropriate time. '''
+        
+        # Modo de relógio externo: só avança quando chegar STEP via socket
+        if self.external_mode:
+            try:
+                dt = self._tickq.get_nowait()
+            except queue.Empty:
+                # nada pra fazer agora; evita busy-wait
+                time.sleep(0.01)
+            else:
+                self.step(dt)
+
+            if self.state != self.prevstate:
+                self.pub_simstate.send_replace(to_group=bs.net.server_id)
+                self.prevstate = self.state
+            return
+        
         if self.state == bs.INIT:
             if self.syst < 0.0:
                 self.syst = time.time()
