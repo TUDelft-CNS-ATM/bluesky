@@ -64,6 +64,33 @@ def recv_for_window(sock: socket.socket, window_sec=RECV_WINDOW_SEC) -> str:
             time.sleep(SLEEP_SLICE)
     return "".join(chunks)
 
+def convert_json_to_csv(objs,csv_path, step, buffer, chunk):
+    parsed = 0
+    for obj in objs:
+            try:
+                data = json.loads(obj)
+                simt = data.get("simt", 0.0)
+                utc = data.get("utc", "")
+                aircraft_data = []
+                for ac in data.get("aircraft", []):
+                    ac["simt"] = simt
+                    ac["utc"] = utc
+                    aircraft_data.append(ac)
+                if aircraft_data:
+                    append_rows(csv_path, step, aircraft_data)
+                    parsed += 1
+            except json.JSONDecodeError as e:
+                log_error(f"JSON decode error at step {step}: {e}")
+            except Exception as e:
+                log_error(f"Unexpected parse error at step {step}: {e}")
+
+    if parsed == 0 and ("{" not in buffer):
+            frag = (chunk or buffer)[:200].replace("\n", " ")
+            log_error(f"No JSON parsed at step {step} | head: {frag}")
+
+
+        
+
 
 def main():
     cfg = load_config()
@@ -94,29 +121,9 @@ def main():
             buffer += chunk
 
         objs, buffer = extract_json_from_buffer(buffer)
-        parsed = 0
-
-        for obj in objs:
-            try:
-                data = json.loads(obj)
-                simt = data.get("simt", 0.0)
-                utc = data.get("utc", "")
-                aircraft_data = []
-                for ac in data.get("aircraft", []):
-                    ac["simt"] = simt
-                    ac["utc"] = utc
-                    aircraft_data.append(ac)
-                if aircraft_data:
-                    append_rows(csv_path, step, aircraft_data)
-                    parsed += 1
-            except json.JSONDecodeError as e:
-                log_error(f"JSON decode error at step {step}: {e}")
-            except Exception as e:
-                log_error(f"Unexpected parse error at step {step}: {e}")
-
-        if parsed == 0 and ("{" not in buffer):
-            frag = (chunk or buffer)[:200].replace("\n", " ")
-            log_error(f"No JSON parsed at step {step} | head: {frag}")
+        
+        convert_json_to_csv(objs,csv_path, step, buffer, chunk)
+        
         
         print(f"[Orchestrator] Step {step+1}/{steps} executed.")
 
