@@ -1,5 +1,5 @@
 {
   "simulation_time_sec": 240,
   "incremental_time_sec": 5,
-  "scenario_file_name": "BRT/brt_scen8.scn"
+  "scenario_file_name": "DEMO/demo-scenario.scn"
 }
