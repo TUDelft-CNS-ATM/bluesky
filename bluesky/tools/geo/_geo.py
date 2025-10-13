@@ -149,8 +149,8 @@ def qdrdist_matrix(lat1, lon1, lat2, lon2):
     coslat1 = np.cos(np.radians(lat1))
     coslat2 = np.cos(np.radians(lat2))
 
-    sin21 = np.mat(np.sin(sin2))
-    cos21 = np.mat(np.cos(sin2))
+    sin21 = np.asmatrix(np.sin(sin2))
+    cos21 = np.asmatrix(np.cos(sin2))
     y = np.multiply(sin21, coslat2)
 
     x1 = np.multiply(coslat1.T, sinlat2)
@@ -161,8 +161,8 @@ def qdrdist_matrix(lat1, lon1, lat2, lon2):
 
     qdr = np.degrees(np.arctan2(y, x))
 
-    sin10 = np.mat(np.abs(np.sin(sin1/2.)))
-    sin20 = np.mat(np.abs(np.sin(sin2/2.)))
+    sin10 = np.asmatrix(np.abs(np.sin(sin1/2.)))
+    sin20 = np.asmatrix(np.abs(np.sin(sin2/2.)))
     sin1sin1 = np.multiply(sin10, sin10)
     sin2sin2 = np.multiply(sin20, sin20)
     sqrt = sin1sin1 + np.multiply((coslat1.T * coslat2), sin2sin2)
@@ -246,8 +246,8 @@ def latlondist_matrix(lat1, lon1, lat2, lon2):
     coslat1 = np.cos(np.radians(lat1))
     coslat2 = np.cos(np.radians(lat2))
 
-    sin10 = np.mat(np.sin(sin1/2))
-    sin20 = np.mat(np.sin(sin2/2))
+    sin10 = np.asmatrix(np.sin(sin1/2))
+    sin20 = np.asmatrix(np.sin(sin2/2))
     sin1sin1 =  np.multiply(sin10, sin10)
     sin2sin2 =  np.multiply(sin20, sin20)
     root =  sin1sin1+np.multiply((coslat1.T*coslat2), sin2sin2)
