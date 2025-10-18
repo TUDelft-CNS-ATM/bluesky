@@ -5,6 +5,7 @@
 /scenario/ic.scn
 /bluesky/resources/grib
 /bluesky/resources/netcdf
+/log/*
 
 # Potentially locally-copied BADA installation
 /bluesky/resources/performance/BADA/*
