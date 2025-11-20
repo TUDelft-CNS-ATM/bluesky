@@ -120,7 +120,7 @@ def process(ext_cmds=None):
         Stack.clear()
 
 
-def readscn(fname):
+def readscn(fname, sort=True):
     ''' Read a scenario file. '''
     if not fname:
         return
@@ -163,7 +163,7 @@ def readscn(fname):
                 if not (len(line.strip()) > 0 and line.strip()[0] == "#"):
                     print("except this:" + line)
 
-    return sorted(scenlines, key=lambda x:x[0])
+    return sorted(scenlines, key=lambda x:x[0]) if sort else scenlines
 
 
 @command(aliases=('CALL',), brief="PCALL filename [REL/ABS/args]")
