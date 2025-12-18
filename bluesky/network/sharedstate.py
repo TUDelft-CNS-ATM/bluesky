@@ -3,7 +3,7 @@
     BlueSky's sharedstate is used to keep a shared state 
     across client(s) and simulation node(s)
 '''
-from typing import Any, Generic, Optional, Type, TypeVar
+from typing import Any, Generic, TypeVar
 import numpy as np
 
 from types import SimpleNamespace
@@ -94,7 +94,7 @@ def setvalue(name, value, remote_id=None, group=None):
             getattr(remotes[remote_id or bs.net.act_id], group), name, value)
 
 
-def setdefault(name: str, default: Any, group: Optional[str]=None):
+def setdefault(name: str, default: Any, group: str|None=None):
     ''' Set the default value for variable 'name' in group 'group' '''
     # Add group if it doesn't exist yet
     if group is not None:
@@ -238,7 +238,7 @@ class ActData(Generic[T]):
     def __init__(self, default=None, name='', group=None):
         self.default = default
         self.name: str = name
-        self.group: Optional[str] = group
+        self.group: str|None = group
 
     def __class_getitem__(cls, key):
         ''' Make sure that the final annotation is equal to the wrapped type '''
@@ -261,7 +261,7 @@ class ActData(Generic[T]):
                 # Look for __origin__ in case we have a GenericAlias like list[int]
                 tp = owner.__annotations__.get(name)
                 tp = getattr(tp, '__origin__', tp)
-                if isinstance(tp, Type):
+                if isinstance(tp, type):
                     # Exception case for NumPy ndarray,
                     # which has shape as a mandatory ctor argument
                     if tp is np.ndarray:

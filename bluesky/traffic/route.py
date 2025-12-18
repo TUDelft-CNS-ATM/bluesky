@@ -1378,6 +1378,13 @@ class Route(Base):
         del acrte.wpspd[wpidx]
         del acrte.wprta[wpidx]
         del acrte.wptype[wpidx]
+        del acrte.wpflyby[wpidx]
+        del acrte.wpflyturn[wpidx]
+        del acrte.wpturnbank[wpidx]
+        del acrte.wpturnrad[wpidx]
+        del acrte.wpturnspd[wpidx]
+        del acrte.wpturnhdgr[wpidx]
+        del acrte.wpstack[wpidx]
         if acrte.iactwp > wpidx:
             acrte.iactwp = max(0, acrte.iactwp - 1)
 

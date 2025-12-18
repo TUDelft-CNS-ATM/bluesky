@@ -1,52 +1,52 @@
 QToolButton#op {
     border-top-left-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/play.svg)
+    qproperty-icon: url(icons:play.svg)
 }
 
 QToolButton#hold {
     border-top-right-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/hold.svg)
+    qproperty-icon: url(icons:hold.svg)
 }
 
 QToolButton#fast {
-    qproperty-icon: url(bluesky/resources/graphics/icons/fwd.svg)
+    qproperty-icon: url(icons:fwd.svg)
 }
 
 QToolButton#fast10 {
-    qproperty-icon: url(bluesky/resources/graphics/icons/ffwd.svg)
+    qproperty-icon: url(icons:ffwd.svg)
 }
 
 QToolButton#ic {
     border-bottom-left-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/stop.svg)
+    qproperty-icon: url(icons:stop.svg)
 }
 
 QToolButton#sameic {
     border-bottom-right-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/frwd.svg)
+    qproperty-icon: url(icons:frwd.svg)
 }
 
 QToolButton#showac {
     border-top-left-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/AC.svg)
+    qproperty-icon: url(icons:AC.svg)
 }
 QToolButton#showpz {
     border-top-right-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/PZ.svg)
+    qproperty-icon: url(icons:PZ.svg)
 }
 QToolButton#showapt{
-    qproperty-icon: url(bluesky/resources/graphics/icons/apt.svg)
+    qproperty-icon: url(icons:apt.svg)
 }
 QToolButton#showwpt {
-    qproperty-icon: url(bluesky/resources/graphics/icons/wpt.svg)
+    qproperty-icon: url(icons:wpt.svg)
 }
 QToolButton#showlabels {
     border-bottom-left-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/lbl.svg)
+    qproperty-icon: url(icons:lbl.svg)
 }
 QToolButton#showmap {
     border-bottom-right-radius: 10;
-    qproperty-icon: url(bluesky/resources/graphics/icons/geo.svg)
+    qproperty-icon: url(icons:geo.svg)
 }
 
 QToolButton#custom1 { border-top-left-radius: 10 }
@@ -55,22 +55,22 @@ QToolButton#custom5 { border-bottom-left-radius: 10 }
 QToolButton#custom6 { border-bottom-right-radius: 10 }
 
 QToolButton#zoomin {
-    qproperty-icon: url(bluesky/resources/graphics/icons/zoomin.svg)
+    qproperty-icon: url(icons:zoomin.svg)
 }
 QToolButton#zoomout {
-    qproperty-icon: url(bluesky/resources/graphics/icons/zoomout.svg)
+    qproperty-icon: url(icons:zoomout.svg)
 }
 QToolButton#panleft {
-    qproperty-icon: url(bluesky/resources/graphics/icons/panleft.svg)
+    qproperty-icon: url(icons:panleft.svg)
 }
 QToolButton#panright {
-    qproperty-icon: url(bluesky/resources/graphics/icons/panright.svg)
+    qproperty-icon: url(icons:panright.svg)
 }
 QToolButton#panup {
-    qproperty-icon: url(bluesky/resources/graphics/icons/panup.svg)
+    qproperty-icon: url(icons:panup.svg)
 }
 QToolButton#pandown {
-    qproperty-icon: url(bluesky/resources/graphics/icons/pandown.svg)
+    qproperty-icon: url(icons:pandown.svg)
 }
 
 /* Palette settings for Dark mode */
@@ -83,7 +83,7 @@ QMainWindow[style="dark"] QToolButton, QMainWindow[style="dark"] QTreeWidget, QM
 }
 
 QMainWindow[style="dark"] Stackwin, QMainWindow[style="dark"] Cmdline {
-    color: lightgreen; 
+    color: lightgreen;
     background-color: rgb(90, 90, 90)
 }
 
@@ -105,7 +105,7 @@ QMainWindow[style="light"] QToolButton, QMainWindow[style="light"] QTreeWidget, 
 }
 
 QMainWindow[style="light"] Stackwin, QMainWindow[style="light"] Cmdline {
-    color: rgb(0, 81, 255); 
+    color: rgb(0, 81, 255);
     background-color: white;
     border: 0.5px solid rgb(205,205,205);
 }

@@ -249,6 +249,7 @@ class Autopilot(Entity, replaceable=True):
                                        turnrad,turnspd,turnhdgr, flyturn, flyby)  # update turn distance for VNAV
 
             # Get flyturn switches and data
+            bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
             bs.traf.actwp.flyturn[i]      = flyturn
             bs.traf.actwp.turnrad[i]      = turnrad
             bs.traf.actwp.turnspd[i]      = turnspd
@@ -262,7 +263,6 @@ class Autopilot(Entity, replaceable=True):
             bs.traf.actwp.turntonextwp[i]   = False
 
             # Keep both turning speeds: turn to leg and turn from leg
-            bs.traf.actwp.oldturnspd[i]  = bs.traf.actwp.turnspd[i] # old turnspd, turning by this waypoint
             if bs.traf.actwp.flyturn[i]:
                 bs.traf.actwp.turnspd[i] = turnspd                  # new turnspd, turning by next waypoint
             else:
@@ -733,7 +733,7 @@ class Autopilot(Entity, replaceable=True):
         return True
 
     @stack.command(name='DEST')
-    def setdest(self, acidx: 'acid', wpname:'wpt' = None):
+    def setdest(self, acidx: 'acid', wpname:'wpt' = None, casmach: 'spd'= None):
         ''' DEST acid, latlon/airport
 
             Set destination of aircraft, aircraft wil fly to this airport. '''
@@ -760,9 +760,12 @@ class Autopilot(Entity, replaceable=True):
             lat = bs.navdb.aptlat[apidx]
             lon = bs.navdb.aptlon[apidx]
 
+        # Check if a speed constraint was given at destination
+        dest_spd = -999 if casmach is None else casmach
+
         self.dest[acidx] = wpname
         iwp = route.addwpt(acidx, self.dest[acidx], route.dest,
-                           lat, lon, 0.0, bs.traf.cas[acidx])
+                           lat, lon, 0.0, dest_spd)
         # If only waypoint: activate
         if (iwp == 0) or (self.orig[acidx] != "" and route.nwp == 2):
             bs.traf.actwp.lat[acidx] = route.wplat[iwp]

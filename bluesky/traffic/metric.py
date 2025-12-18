@@ -593,23 +593,23 @@ class metric_HB():
         traf_selected_lat,traf_selected_lon,traf_selected_alt,traf_selected_tas,traf_selected_trk,traf_selected_ntraf = self.selectTraffic()
 
 
-        [self.rel_trk, self.pos] = geo.qdrdist_matrix(self.initiallat,self.initiallon,np.mat(traf_selected_lat),np.mat(traf_selected_lon))
+        [self.rel_trk, self.pos] = geo.qdrdist_matrix(self.initiallat,self.initiallon,np.asmatrix(traf_selected_lat),np.asmatrix(traf_selected_lon))
         # self.lat = np.append(self.lat,traf.lat)
         # self.lon = np.append(self.lon,traf.lon)
         self.id = bs.traf.id
 
         # Position x and y wrt to initial position
-        self.pos = np.mat(self.pos)
+        self.pos = np.asmatrix(self.pos)
         anglex = np.cos(np.radians(90-self.rel_trk))
         angley = np.sin(np.radians(90-self.rel_trk))
 
-        self.posx = np.mat(np.array(self.pos) * np.array(anglex)) #nm
-        self.posy = np.mat(np.array(self.pos) * np.array(angley)) #nm
+        self.posx = np.asmatrix(np.array(self.pos) * np.array(anglex)) #nm
+        self.posy = np.asmatrix(np.array(self.pos) * np.array(angley)) #nm
 
         self.lat = traf_selected_lat
         self.lon = traf_selected_lon
 
-        self.alt = np.mat(traf_selected_alt/ft)
+        self.alt = np.asmatrix(traf_selected_alt/ft)
         self.spd = traf_selected_tas/nm #nm/s
         self.trk = traf_selected_trk
         self.ntraf = traf_selected_ntraf
@@ -630,8 +630,8 @@ class metric_HB():
         hdgx = np.cos(np.radians(90-self.trk))
         hdgy = np.sin(np.radians(90-self.trk))
 
-        spdu = np.mat(self.spd * hdgx.T).T #nm/s
-        spdv = np.mat(self.spd * hdgy.T).T #nm/s
+        spdu = np.asmatrix(self.spd * hdgx.T).T #nm/s
+        spdv = np.asmatrix(self.spd * hdgy.T).T #nm/s
 
         # distances pos and spd
         distx = np.array(self.posx.T - self.posx) #nm
@@ -700,7 +700,7 @@ class metric_HB():
                 yield list(times)
 
     def apply_twoCircleMethod(self):
-        Va = np.mat(self.spd)
+        Va = np.asmatrix(self.spd)
         Ha = np.radians(self.trk)
 
         Vb = np.add(Va,0.0000001)
@@ -708,7 +708,7 @@ class metric_HB():
 
         Hb = Ha
 
-        [H0,S0] = geo.qdrdist_matrix(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
+        [H0,S0] = geo.qdrdist_matrix(np.asmatrix(self.lat),np.asmatrix(self.lon),np.asmatrix(self.lat),np.asmatrix(self.lon))
         S0 = np.where(S0 > 0, S0, np.nan)
 
         S0 = self.apply_before_filter(S0,Va)
@@ -1173,7 +1173,7 @@ class metric_HB():
         #        return
 
     def apply_heading_range(self):
-        Va = np.mat(self.spd)
+        Va = np.asmatrix(self.spd)
         Ha = np.radians(self.trk)
         Ha_len = len(Ha)
         Ha = np.repeat(Ha,Ha_len)
@@ -1185,7 +1185,7 @@ class metric_HB():
 
         R = self.dist_range
 
-        [H0,S0] = geo.qdrdist_matrix(np.mat(self.lat),np.mat(self.lon),np.mat(self.lat),np.mat(self.lon))
+        [H0,S0] = geo.qdrdist_matrix(np.asmatrix(self.lat),np.asmatrix(self.lon),np.asmatrix(self.lat),np.asmatrix(self.lon))
 
         S0 = self.apply_before_filter(S0,Va)
 

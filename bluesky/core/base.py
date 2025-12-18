@@ -9,12 +9,12 @@
       - signal subscribers
 '''
 import inspect
-from typing import Dict, Optional, Type, ClassVar
+from typing import ClassVar
 
 from bluesky.core.funcobject import FuncObject
 
 # Global dictionary of replaceable BlueSky classes
-replaceables: Dict[str, Type['Base']] = dict()
+replaceables: dict[str, type['Base']] = dict()
 
 
 def reset():
@@ -57,11 +57,11 @@ class Base:
           - signal subscribers
     '''
     # Class variables that will be set for subclasses
-    _baseimpl: ClassVar[Type['Base']]
+    _baseimpl: ClassVar[type['Base']]
     _default: ClassVar[str]
-    _generator: ClassVar[Type['Base']]
-    _selinstance: ClassVar[Optional['Base']]
-    __func_objects__: ClassVar[Dict[str, FuncObject]]
+    _generator: ClassVar[type['Base']]
+    _selinstance: ClassVar['Base|None']
+    __func_objects__: ClassVar[dict[str, FuncObject]]
 
     @classmethod
     def setdefault(cls, name):
@@ -97,17 +97,20 @@ class Base:
     def select(cls, instance=None):
         ''' Select instance class or caller class as generator,
             and update known function object references. '''
-        if instance is not None:
+        if instance is None:
+            if cls._baseimpl._generator is cls:
+                # Don't go through selection of function objects when we
+                # don't have to, as this could break selected instance methods
+                return
+            cls._baseimpl._generator = cls
+            target = cls
+        else:
             cls._baseimpl._generator = type(instance)
             cls._baseimpl._selinstance = instance
             target = instance
-        else:
-            cls._baseimpl._generator = cls
-            target = cls
 
         for name, fobj in target.__func_objects__.items():
-            if not inspect.ismethod(fobj.func): # TODO: doesn't this disallow e.g., selecting different stack function implementations?
-                fobj.update(getattr(target, name, None))
+            fobj.update(getattr(target, name, None))
 
     @classmethod
     def selected(cls):

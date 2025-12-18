@@ -1,6 +1,5 @@
 ''' Stack Command implementation. '''
 import inspect
-from typing import Dict
 
 from bluesky.core.funcobject import FuncObject
 from bluesky.network.publisher import state_publisher
@@ -10,7 +9,7 @@ from bluesky.stack.argparser import Parameter, getnextarg, ArgumentError
 class Command:
     ''' Stack command object. '''
     # Dictionary with all command objects
-    cmddict: Dict[str, 'Command'] = dict()
+    cmddict: dict[str, 'Command'] = dict()
 
     @staticmethod
     @state_publisher(topic='STACKCMDS')
@@ -116,11 +115,12 @@ class Command:
     def callback(self, function):
         self._callback = FuncObject(function)
         spec = inspect.signature(function)
+        paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
+        paramspecnames = [p.name for p in paramspecs]
         self.brief = self.brief or (
-            self.name + ' ' + ','.join(spec.parameters))
+            self.name + ' ' + ','.join(paramspecnames))
         self.help = self.help or inspect.cleandoc(
             inspect.getdoc(function) or '')
-        paramspecs = list(filter(Parameter.canwrap, spec.parameters.values()))
         if self.annotations:
             self.params = list()
             pos = 0

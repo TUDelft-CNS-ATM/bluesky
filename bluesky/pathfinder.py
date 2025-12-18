@@ -78,7 +78,7 @@ class ResourcePath(MultiplexedPath):
         paths = []
         if not descendants:
             return self
-        
+
         for path in (p.joinpath(*descendants) for p in self._paths):
             if path.exists():
                 if path.is_dir():
@@ -91,13 +91,13 @@ class ResourcePath(MultiplexedPath):
         # if it does not exist, construct it with the first path
         return ResourcePath(*paths) if len(paths) > 1 else \
             paths[0] if len(paths) == 1 else self._paths[0].joinpath(*descendants)
-    
+
     __truediv__ = joinpath
 
 
 def resource(*descendants):
     ''' Get a path pointing to a BlueSky resource.
-    
+
         Arguments:
         - descendants: Zero or more path-like objects (Path or str)
 
@@ -133,7 +133,7 @@ def init(workdir=None):
                 print(f'Creating BlueSky base directory "{workdir.absolute()}"')
                 workdir.mkdir()
 
-    elif not Path(workdir).exists():
+    elif not (workdir := Path(workdir)).exists():
         print(f"Specified working directory {workdir} doesn't exist!")
 
     # Ensure existence of scenario, plugins, output, and cache directories

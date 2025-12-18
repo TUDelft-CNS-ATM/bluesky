@@ -19,3 +19,5 @@ client-side reset is not called for everything?
 STACK signal is used for inter-process STACK commands, but not locally called stack.stack(). Make it so that calling this function also 
 emits the STACK signal?
 Fix: SAVEIC adds np.float64() since numpy2
+
+smarter stack: allow arguments to be stochastic?, e.g., where a number is expected allow something like uniform(mu, sigma)

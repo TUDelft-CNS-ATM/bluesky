@@ -5,7 +5,7 @@ import platform
 from PyQt6.QtWidgets import QApplication as app, QWidget, QMainWindow, \
     QSplashScreen, QTreeWidgetItem, QPushButton, QFileDialog, QDialog, \
     QTreeWidget, QVBoxLayout, QDialogButtonBox, QMenu, QLabel
-from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty
+from PyQt6.QtCore import Qt, pyqtSlot, QTimer, QItemSelectionModel, QSize, QEvent, pyqtProperty, QDir
 from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6 import uic
 
@@ -231,6 +231,7 @@ class MainWindow(QMainWindow, Base):
 
     def setStyleSheet(self, contents=''):
         if not contents:
+            QDir.addSearchPath("icons", (bs.resource(bs.settings.gfx_path) / "icons").as_posix())
             with open(bs.resource(bs.settings.gfx_path) / 'bluesky.qss') as style:
                 super().setStyleSheet(style.read())
 
@@ -239,7 +240,7 @@ class MainWindow(QMainWindow, Base):
         ''' Switch on/off elements and background of map/radar view 
         
             Usage:
-                SWRAD GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]
+                SWRAD SAT/GEO/GRID/APT/VOR/WPT/LABEL/ADSBCOVERAGE/TRAIL/POLY [dt]/[value]
         '''
         match switch:
             case 'GEO':
@@ -287,7 +288,7 @@ class MainWindow(QMainWindow, Base):
         self.panzoom_event.emit(store)
         return True
 
-    @stack.commandgroup(annotations='float/txt', brief='ZOOM IN/OUT/factor')
+    @stack.commandgroup(brief='ZOOM IN/OUT/factor')
     def zoom(self, factor: float):
         ''' ZOOM: Zoom in and out in the radar view. 
         
