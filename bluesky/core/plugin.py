@@ -127,28 +127,28 @@ class Plugin:
                                 print(f"{fname} looks like a plugin, but init_plugin() doesn't return one or two dicts")
                                 continue
 
-                            cfgdict = {k.s:v for k,v in zip(ret_dicts[0].keys, ret_dicts[0].values)}
+                            cfgdict = {k.value:v for k,v in zip(ret_dicts[0].keys, ret_dicts[0].values)}
                             plugintype = cfgdict.get('plugin_type')
                             if plugintype is None:
                                 print(f'{fname} looks like a plugin, but no plugin type (sim/gui) is specified. ' 
                                         'To fix this, add the element plugin_type to the configuration dictionary that is returned from init_plugin()')
                                 continue
-                            if plugintype.s == reqtype:
+                            if plugintype.value == reqtype:
                                 # This is the initialization function of a bluesky plugin. Parse the contents
                                 plugin = Plugin(fullname)
                                 plugin.plugin_doc = ast.get_docstring(tree)
-                                plugin.plugin_name = cfgdict['plugin_name'].s
-                                plugin.plugin_type = cfgdict['plugin_type'].s
+                                plugin.plugin_name = cfgdict['plugin_name'].value
+                                plugin.plugin_type = cfgdict['plugin_type'].value
 
                                 # Parse the stack function dict
                                 if len(ret_dicts) > 1:
-                                    stack_keys       = [el.s for el in ret_dicts[1].keys]
-                                    stack_docs       = [el.elts[-1].s for el in ret_dicts[1].values]
+                                    stack_keys       = [el.value for el in ret_dicts[1].keys]
+                                    stack_docs       = [el.elts[-1].value for el in ret_dicts[1].values]
                                     plugin.plugin_stack = list(zip(stack_keys, stack_docs))
                                 # Add plugin to the dict of available plugins
                                 cls.plugins[plugin.plugin_name.upper()] = plugin
                             else:
-                                cls.plugins_ext.append(cfgdict['plugin_name'].s.upper())
+                                cls.plugins_ext.append(cfgdict['plugin_name'].value.upper())
 
 
 def init(mode):
