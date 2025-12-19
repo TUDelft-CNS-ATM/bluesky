@@ -11,10 +11,10 @@ Created by  : Jacco M. Hoekstra
 """
 from time import strftime, gmtime
 import numpy as np
+import bluesky as bs
 
 from .aero import cas2tas, mach2tas, kts, fpm, ft
-from .geo import magdec
-
+from .geo import magdec, qdrdist
 
 def txt2alt(txt):
     """Convert text to altitude in meter: also FL300 => 30000. as float"""
@@ -75,15 +75,50 @@ def i2txt(i, n):
 
 def txt2hdg(txt, lat=None, lon=None):
     ''' Convert text to true or magnetic heading.
-    Modified by : Yaofu Zhou'''
-    heading = float(txt.upper().replace("T", "").replace("M", ""))
+    Modified by : Yaofu Zhou
+    Modified by J.M.Hoekstra'''
+    if txt.upper().replace("T", "").replace("M", "")\
+            .replace(".","").replace("-","").isdigit():
 
-    if "M" in txt.upper():
-        if None in (lat, lon):
-            raise ValueError('txt2hdg needs a reference latitude and longitude '
-                             'when a magnetic heading is parsed.')
-        magnetic_declination = magdec(lat, lon)
-        heading = (heading + magnetic_declination) % 360.0
+        # Remove leading zeroes, also after "T"and "M"
+        while txt[0]=="0" and len(txt)>1:
+            txt = txt[1:]
+        if len(txt)>3:
+            txt = txt.upper().replace("T00","T").replace("M00","M")
+        if len(txt)>2:
+            txt = txt.upper().replace("T0","T").replace("M0","M")
+
+        # Get value
+        heading = float(txt.upper().replace("T", "").replace("M", ""))
+
+        if "M" in txt.upper():
+            if None in (lat, lon):
+                raise ValueError('txt2hdg needs a reference latitude and longitude '
+                                 'when a magnetic heading is parsed.')
+            magnetic_declination = magdec(lat, lon)
+            heading = (heading + magnetic_declination) % 360.0
+    else:
+        if bs.navdb.aptid.count(txt.upper()) > 0:
+            idx = bs.navdb.aptid.index(txt.upper())
+
+            lat = bs.navdb.aptlat[idx]
+            lon = bs.navdb.aptlon[idx]
+
+        # fix or navaid?
+        elif bs.navdb.wpid.count(txt.upper()) > 0:
+            idx = bs.navdb.getwpidx(txt.upper(), bs.ref.lat, bs.ref.lon)
+            lat = bs.navdb.wplat[idx]
+            lon = bs.navdb.wplon[idx]
+
+        # aircraft id?
+        elif txt.upper() in bs.traf.id:
+            idx = bs.traf.id2idx(txt.upper())
+            lat = bs.traf.lat[idx]
+            lon = bs.traf.lon[idx]
+        else:
+            raise ValueError(f'txt2hdg needs either a float, optionally with an M/T prefix or a position')
+
+        heading,dist = qdrdist(bs.ref.lat,bs.ref.lon,lat,lon)
 
     return heading
 
