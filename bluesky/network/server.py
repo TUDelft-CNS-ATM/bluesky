@@ -1,7 +1,9 @@
 ''' Server test '''
 import sys
+import os
+import platform
 import signal
-from subprocess import Popen
+import subprocess
 from multiprocessing import cpu_count
 from threading import Thread
 
@@ -62,6 +64,8 @@ class Server(Thread):
         # Connect to interrupt signal
         signal.signal(signal.SIGINT, lambda *args: self.quit())
         signal.signal(signal.SIGTERM, lambda *args: self.quit())
+        if platform.system() == 'Windows':
+            signal.signal(getattr(signal, 'SIGBREAK'), lambda *args: self.quit())
 
     def quit(self):
         self.running = False
@@ -80,13 +84,17 @@ class Server(Thread):
                 self.max_group_idx += 1
                 newid = genid(self.server_id[:-1], seqidx=self.max_group_idx)
             args = [sys.executable, '-m', 'bluesky', '--sim', '--groupid', bin2hex(newid)]
+            kwargs = dict()
             if self.altconfig:
                 args.extend(['--configfile', self.altconfig])
             if self.workdir:
                 args.extend(['--workdir', self.workdir])
             if startscn:
                 args.extend(['--scenfile', startscn])
-            self.spawned_processes[newid] = Popen(args)
+            if platform.system() == 'Windows':
+                kwargs['creationflags'] = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP')
+            self.spawned_processes[newid] = subprocess.Popen(args, **kwargs)
+
 
     def send(self, topic, data='', dest=b''):
         self.sock_send.send_multipart(
@@ -214,7 +222,10 @@ class Server(Thread):
         for pid, p in self.spawned_processes.items():
             # print('Stopping node:', pid, end=' ')
             # p.send_signal(signal.SIGTERM)
-            p.terminate()
+            if platform.system() == 'Windows':
+                os.kill(p.pid, getattr(signal, 'CTRL_BREAK_EVENT'))
+            else:
+                p.terminate()
             p.wait()
             # Inform network that node is removed
             self.sock_recv.send_multipart([b'\x00' + pid])
