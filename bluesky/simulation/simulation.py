@@ -1,4 +1,5 @@
 ''' BlueSky simulation control object. '''
+import platform
 import time
 import datetime
 import signal
@@ -74,6 +75,9 @@ class Simulation(Base):
         # is received
         signal.signal(signal.SIGINT, lambda *args: self.quit())
         signal.signal(signal.SIGTERM, lambda *args: self.quit())
+        if platform.system() == 'Windows':
+            signal.signal(getattr(signal, 'SIGBREAK'), lambda *args: self.quit())
+
 
         while self.state != bs.END:
             # Process timers
