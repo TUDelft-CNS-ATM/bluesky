@@ -2,7 +2,7 @@
 from ctypes import c_float, c_int, Structure
 import numpy as np
 
-from bluesky.tools import areafilter
+from bluesky.tools import shapes
 from PyQt6.QtCore import Qt, QEvent
 
 import bluesky as bs
@@ -220,7 +220,7 @@ class RadarWidget(glh.RenderWidget):
         # Use new centre lat/lon to update reference position
         bs.ref.lat = self.pan[0]
         bs.ref.lon = self.pan[1]
-        bs.ref.area = areafilter.Box('refarea', self.viewportlatlon())
+        bs.ref.area = shapes.Box('refarea', self.viewportlatlon())
 
         # update pan and zoom on GPU for all shaders
         self.shaderset.set_wrap(self.wraplon, self.wrapdir)

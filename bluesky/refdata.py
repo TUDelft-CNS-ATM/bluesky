@@ -1,7 +1,7 @@
 ''' Reference values for simulation data. '''
 from bluesky.core.base import Base
 from bluesky import stack
-from bluesky.tools import areafilter
+from bluesky.tools import shapes
 
 
 class RefData(Base):
@@ -13,7 +13,7 @@ class RefData(Base):
         self.acidx: int = -1
         self.hdg: float = 0.0
         self.cas: float = 0.0
-        self.area: areafilter.Shape = areafilter.Box('refarea', (-1.0, -1.0, 1.0, 1.0))
+        self.area: shapes.Shape = shapes.Box('refarea', (-1.0, -1.0, 1.0, 1.0))
 
     def reset(self):
         ''' Reset reference data. '''
@@ -23,7 +23,7 @@ class RefData(Base):
         self.acidx = -1
         self.hdg = 0.0
         self.cas = 0.0
-        self.area = areafilter.Box('refarea', (-1.0, -1.0, 1.0, 1.0))
+        self.area = shapes.Box('refarea', (-1.0, -1.0, 1.0, 1.0))
 
     @stack.command
     def near(self, lat: 'lat', lon: 'lon', cmdstr: 'string'):
@@ -34,12 +34,14 @@ class RefData(Base):
 
     @stack.commandgroup
     def inside(self, lat0: 'lat', lon0: 'lon', lat1: 'lat', lon1: 'lon', cmdstr: 'string'):
-        self.area = areafilter.Box('refarea', (lat0, lon0, lat1, lon1))
+        self.area = shapes.Box('refarea', (lat0, lon0, lat1, lon1))
         stack.process(cmdstr)
 
     @inside.altcommand
     def insidearea(self, areaname: 'txt', cmdstr: 'string'):
-        self.area = areafilter.getArea(areaname)
+        area = shapes.get_by_name(areaname)
+        if area is not None:
+            self.area = area
         stack.process(cmdstr)
 
     @stack.command(aliases=('with',))
