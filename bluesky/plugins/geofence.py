@@ -15,7 +15,7 @@ except ImportError:
 
 import bluesky as bs
 from bluesky import stack
-from bluesky.tools import aero, areafilter, geo
+from bluesky.tools import aero, areafilter, shapes, geo
 
 bs.settings.set_variable_defaults(geofence_dtlookahead=30)
 
@@ -147,7 +147,7 @@ def drawgeofence(toggle: 'txt'='on'):
         for name, geo_obj in Geofence.geo_by_name.items():
             bs.scr.objappend("POLY", name, None)
 
-class Geofence(areafilter.Poly):
+class Geofence(shapes.Poly):
     ''' BlueSky Geofence class.
     
         This class subclasses Shape, and adds Geofence-specific data and methods.
