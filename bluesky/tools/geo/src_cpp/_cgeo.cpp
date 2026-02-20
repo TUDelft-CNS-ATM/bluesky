@@ -636,6 +636,7 @@ static PyObject* cgeo_kwikqdrdist_matrix(PyObject* self, PyObject* args)
                 } else {
                     kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2);
                     *pqdr = RAD2DEG * kwikqdr(in);
+                    *pqdr_T = fmod(*pqdr + 180.0, 360.0);
                     *pdst = M2NM * kwikdist(in);
                 }
                 ++j; ++plat2; ++plon2; ++pqdr; ++pdst;
