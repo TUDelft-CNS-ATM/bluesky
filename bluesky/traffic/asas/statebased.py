@@ -78,8 +78,6 @@ class StateBased(ConflictDetection):
         with np.errstate(divide='ignore', invalid='ignore'): # prevent division by zero
             tcrosshi = np.where(dvs == 0, np.inf, (dalt + hpz) / -dvs)
             tcrosslo = np.where(dvs == 0, np.inf, (dalt - hpz) / -dvs)
-        tcrosshi = (dalt + hpz) / -dvs
-        tcrosslo = (dalt - hpz) / -dvs
         tinver = np.minimum(tcrosshi, tcrosslo)
         toutver = np.maximum(tcrosshi, tcrosslo)
 
