@@ -76,8 +76,8 @@ class StateBased(ConflictDetection):
         # hPZ can differ per aircraft, get the largest value per aircraft pair
         hpz = np.asarray(np.maximum(np.asmatrix(hpz), np.asmatrix(hpz).transpose()))
         with np.errstate(divide='ignore', invalid='ignore'): # prevent division by zero
-            tcrosshi = np.where(dvs == 0, np.inf, (dalt + hpz) / -dvs)
-            tcrosslo = np.where(dvs == 0, np.inf, (dalt - hpz) / -dvs)
+            tcrosshi = np.where(np.abs(dvs) < 1e-6, np.inf, (dalt + hpz) / -dvs)
+            tcrosslo = np.where(np.abs(dvs) < 1e-6, np.inf, (dalt - hpz) / -dvs)
         tinver = np.minimum(tcrosshi, tcrosslo)
         toutver = np.maximum(tcrosshi, tcrosslo)
 
