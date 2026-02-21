@@ -71,13 +71,13 @@ class StateBased(ConflictDetection):
 
         dvs = ownship.vs.reshape(1, ownship.ntraf) - \
             intruder.vs.reshape(1, ownship.ntraf).T
-        dvs = np.where(np.abs(dvs) < 1e-6, 1e-6, dvs)  # prevent division by zero
 
         # Check for passing through each others zone
         # hPZ can differ per aircraft, get the largest value per aircraft pair
         hpz = np.asarray(np.maximum(np.asmatrix(hpz), np.asmatrix(hpz).transpose()))
-        tcrosshi = (dalt + hpz) / -dvs
-        tcrosslo = (dalt - hpz) / -dvs
+        with np.errstate(divide='ignore', invalid='ignore'): # prevent division by zero
+            tcrosshi = np.where(np.abs(dvs) < 1e-6, np.inf, (dalt + hpz) / -dvs)
+            tcrosslo = np.where(np.abs(dvs) < 1e-6, np.inf, (dalt - hpz) / -dvs)
         tinver = np.minimum(tcrosshi, tcrosslo)
         toutver = np.maximum(tcrosshi, tcrosslo)
 
