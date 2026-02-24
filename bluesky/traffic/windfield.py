@@ -73,7 +73,10 @@ class Windfield():
         """ Add a vector of lat/lon positions (arrays) with a (2D vector of) 
             wind speed [m/s] in north and east component. 
             Optionally an array with altitudes can be used
-        """              
+        """
+        lat = array(lat, ndmin=1)
+        lon = array(lon, ndmin=1)
+
         if windalt is not None and len(windalt) > 1:           
             # Set altitude interpolation functions
             fnorth = interp1d(windalt, vnorth.T, bounds_error=False, 
@@ -113,8 +116,15 @@ class Windfield():
             self.iprof.append(len(self.lat) + 1)
         
         else:
-            vnaxis = vnorth
-            veaxis = veast
+            npos = len(lat)
+            vnaxis = array(vnorth, ndmin=2)
+            veaxis = array(veast, ndmin=2)
+            if vnaxis.size == 1 and npos > 1:
+                vnaxis = vnaxis * ones((1, npos))
+            if veaxis.size == 1 and npos > 1:
+                veaxis = veaxis * ones((1, npos))
+            vnaxis = vnaxis.reshape((1, npos))
+            veaxis = veaxis.reshape((1, npos))
 
         self.nvec += len(lat)
         self.lat = append(self.lat, lat)
