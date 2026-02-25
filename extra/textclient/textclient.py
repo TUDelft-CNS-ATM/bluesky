@@ -5,14 +5,14 @@
 
     PYTHONPATH=/path/to/your/bluesky python textclient.py
 '''
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLabel
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLabel, QTextEdit
 
 import bluesky as bs
 from bluesky.core import Base
 from bluesky.network import subscriber
 from bluesky.network.client import Client
-from bluesky.stack import stack
+from bluesky.ui.qtgl.console import Cmdline
 
 
 # The echo textbox, command line, and bluesky network client as globals
@@ -38,21 +38,6 @@ class InfoLine(QLabel, Base):
     def acdata(self, data):
         ''' Example subscriber to aircraft state data '''
         self.setText(f"There are {len(data.lat)} aircraft in the simulation.")
-
-class Cmdline(QTextEdit):
-    ''' Wrapper class for the command line. '''
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMaximumHeight(21)
-
-    def keyPressEvent(self, event):
-        ''' Handle Enter keypress to send a command to BlueSky. '''
-        if event.key() == Qt.Key.Key_Enter or event.key() == Qt.Key.Key_Return:
-            stack(self.toPlainText())
-            echobox.echo(self.toPlainText())
-            self.setText('')
-        else:
-            super().keyPressEvent(event)
 
 
 if __name__ == '__main__':
@@ -81,6 +66,8 @@ if __name__ == '__main__':
     layout.addWidget(infoline)
     win.show()
 
+    cmdline.commandEntered.connect(bs.stack.stack)
+    cmdline.commandEntered.connect(echobox.echo)
     # Let echobox act as screen object
     # NOTE: this approach will soon be deprecated
     bs.scr = echobox

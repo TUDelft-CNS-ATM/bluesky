@@ -229,6 +229,8 @@ class MainWindow(QMainWindow, Base):
             w.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         recursiveNoFocus(self.databox)
 
+        self.lineEdit.setFocus()
+
     def setStyleSheet(self, contents=''):
         if not contents:
             QDir.addSearchPath("icons", (bs.resource(bs.settings.gfx_path) / "icons").as_posix())
