@@ -53,6 +53,8 @@ class OpenAP(PerfBase):
             self.vminto = np.array([])
             self.hcross = np.array([])
             self.mmo = np.array([])
+            self.post_flight = np.array([], dtype=bool)
+            self.pf_flag = np.array([], dtype=bool)
 
     def create(self, n=1):
         # cautious! considering multiple created aircraft with same type
@@ -164,6 +166,8 @@ class OpenAP(PerfBase):
         mask = np.zeros_like(self.actype, dtype=bool)
         mask[-n:] = True
         self.vmin[-n:], self.vmax[-n:] = self._construct_v_limits(mask)
+        self.post_flight[-n:] = False
+        self.pf_flag[-n:] = True
 
     def update(self, dt):
         """Periodic update function for performance calculations."""
@@ -172,6 +176,8 @@ class OpenAP(PerfBase):
         self.phase = ph.get(
             self.lifttype, bs.traf.tas, bs.traf.vs, bs.traf.alt, unit="SI"
         )
+        descent = np.logical_or(self.phase == ph.DE, self.phase == ph.AP)
+        self.post_flight = np.where(descent, True, self.post_flight)
 
         # update speed limits, based on phase change
         self.vmin, self.vmax = self._construct_v_limits()
@@ -294,6 +300,13 @@ class OpenAP(PerfBase):
         allow_vs = np.where(
             (self.phase == ph.GD) & (bs.traf.tas < self.vminto), 0, allow_vs
         )  # takeoff aircraft
+
+        touchdown = (bs.traf.alt < 0.5) & self.post_flight & self.pf_flag
+        allow_v_tas = np.where(touchdown, 0.0, allow_v_tas)
+        allow_vs = np.where(touchdown, 0.0, allow_vs)
+        bs.traf.selspd = np.where(touchdown, 0.0, bs.traf.selspd)
+        bs.traf.swvnavspd = np.where(touchdown, False, bs.traf.swvnavspd)
+        self.pf_flag = np.where(touchdown, False, self.pf_flag)
 
         # corect rotercraft speed limits
         ir = np.where(self.lifttype == coeff.LIFT_ROTOR)[0]
