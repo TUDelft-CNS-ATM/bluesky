@@ -163,7 +163,10 @@ class Console(QWidget):
 
         newcmd = self.command_line
         cursorpos = None
-        if event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde:
+        if event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde \
+                and not (event.modifiers() & Qt.KeyboardModifier.ControlModifier
+                         and not event.modifiers() & Qt.KeyboardModifier.AltModifier) \
+                and not event.modifiers() & Qt.KeyboardModifier.MetaModifier:
             pos = self.lineEdit.cursor_pos()
             newcmd = newcmd[:pos] + event.text() + newcmd[pos:]
             # Update the cursor position with the length of the added text
@@ -177,6 +180,15 @@ class Console(QWidget):
                 newcmd, displaytext = autocomplete.complete(newcmd)
                 if displaytext:
                     self.echo(displaytext)
+        elif event.modifiers() & Qt.KeyboardModifier.ControlModifier and event.key() == Qt.Key.Key_V:
+            # Paste from clipboard
+            clipboard_text = QApplication.clipboard().text()
+            if clipboard_text:
+                pos = self.lineEdit.cursor_pos()
+                # Strip newlines so only first line is pasted (prevent multi-line injection)
+                clipboard_text = clipboard_text.splitlines()[0] if clipboard_text.splitlines() else clipboard_text
+                newcmd = newcmd[:pos] + clipboard_text + newcmd[pos:]
+                cursorpos = pos + len(clipboard_text)
         elif not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier | 
                                         Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier):
             if event.key() == Qt.Key.Key_Up:
