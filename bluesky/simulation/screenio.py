@@ -35,7 +35,6 @@ class ScreenIO(Entity):
         # Screen state defaults
         self.def_pan     = (0.0, 0.0)
         self.def_zoom    = 1.0
-        self.route_all   = ""
 
         # Screen state overrides per client
         self.client_route = dict()
@@ -60,7 +59,6 @@ class ScreenIO(Entity):
 
     def reset(self):
         self.client_route = dict()
-        self.route_all = ''
         self.custacclr = dict()
         self.custgrclr = dict()
         self.samplecount = 0
@@ -73,9 +71,17 @@ class ScreenIO(Entity):
     def showroute(self, acid):
         ''' Toggle show route for this aircraft '''
         if not stack.sender():
-            self.route_all = acid
-            self.client_route.clear()
+            # Scenario-triggered route request - apply to all connected clients
+            for client in bs.net.clients:
+                if client in self.client_route and self.client_route[client] == acid:
+                    # This client already has this route, so toggle it off
+                    self.client_route.pop(client)
+                    self.pub_route.send_delete(**{'acid' : acid})
+                else:
+                    # Set this route for this client
+                    self.client_route[client] = acid
         else:
+            # Client has requested a route
             # here now we need to check if sender is requesting new route or old route
             try:
                 prev_selected_acid = self.client_route[stack.sender()]
@@ -187,19 +193,10 @@ class ScreenIO(Entity):
 
     def send_route_data(self):
         ''' Send route data to client(s) '''
-        # Case 1: A route is selected by one or more specific clients
+        # Send route data to each client based on their individual route selection
         if self.client_route:
             for sender, acid in self.client_route.items():
                 self._sendrte(sender, acid)
-            # Check if there are other senders and also a scenario-selected route
-            if self.route_all:
-                remclients = bs.sim.clients.difference(self.client_route.keys())
-                for sender in remclients:
-                    self._sendrte(sender, self.route_all)
-        # Case 2: only a route selected from scenario file:
-        # Broadcast the same route to everyone
-        elif self.route_all:
-            self._sendrte(b'*', self.route_all)
         
     def _sendrte(self, sender, acid):
         ''' Local shorthand function to send route. '''
