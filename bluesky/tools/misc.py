@@ -155,7 +155,6 @@ def txt2spd(txt):
     try:
         txt = txt.upper().strip()
         if txt.startswith('M'):
-            # Mach number
             mach_txt = txt[1:]
             if '.' in mach_txt:
                 # Explicit decimal notation: M0.82, M2.0
