@@ -1024,7 +1024,7 @@ class Route(Base):
 
         return idx
 
-    @stack.command(aliases=("DIRECTTO", "DIRTO"))
+    @stack.command(aliases=("DIRECTTO", "DIRTO", "DCT"))
     @staticmethod
     def direct(acidx: 'acid', wpname: 'wpinroute'):
         """DIRECT acid wpname
