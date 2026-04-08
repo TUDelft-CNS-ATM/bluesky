@@ -55,7 +55,7 @@ class FixedWidthParser:
     def parse(self, fname):
         line_re, dtypes = self.dformat[0]
         data            = []
-        with open(fname) as f:
+        with open(fname, encoding='latin-1') as f:
             for lineno, line in enumerate(f):
                 match = line_re.match(line)
                 if match:
