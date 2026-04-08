@@ -31,10 +31,6 @@ class TrafficProxy(Base):
     # data['vmin']       = bs.traf.perf.vmin
     # data['vmax']       = bs.traf.perf.vmax
 
-
-    # # Send casmachthr for route visualization
-    # data['casmachthr']    = aero.casmach_thr
-
     # ASAS resolutions for visualization. Only send when evaluated
     # data['asastas']  = bs.traf.cr.tas
     # data['asastrk']  = bs.traf.cr.trk

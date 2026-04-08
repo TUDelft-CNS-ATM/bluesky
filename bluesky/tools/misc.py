@@ -138,39 +138,77 @@ def txt2vs(txt):
 def txt2spd(txt):
     """ Convert text to speed, keep type (EAS/TAS/MACH) unchanged.
 
+        Supports ICAO Doc 4444 speed notation:
+        - Knots : N followed by 4 figures (e.g. N0485 -> 485 kt)
+        - Mach  : M followed by 3 figures (e.g. M082  -> Mach 0.82)
+        Also accepts explicit decimal Mach (M0.82) and plain knot values (485)
+        for backward compatibility.
+
         Arguments:
         - txt: text string representing speed
 
         Returns:
-        - Speed in meters per second or Mach.
+                - Mach number stored as a NEGATIVE float (e.g. -0.82 for Mach 0.82),
+                    or CAS in meters per second as a POSITIVE float.
+                    The sign is the unambiguous type discriminator used throughout BlueSky.
     """
     try:
-        txt = txt.upper()
-        spd = float(txt.replace("M0.", ".").replace("M", ".").replace("..", "."))
-
-        if not (0.1 < spd < 1.0 or txt.count("M") > 0):
-            spd *= kts
-        return spd
+        txt = txt.upper().strip()
+        if txt.startswith('M'):
+            mach_txt = txt[1:]
+            if '.' in mach_txt:
+                # Explicit decimal notation: M0.82, M2.0
+                mach = float(mach_txt)
+            else:
+                # ICAO Doc 4444: M + 3 figures, implied decimal before last 2
+                # M082 -> 0.82, M150 -> 1.50, M200 -> 2.00
+                mach = float(mach_txt) / 100.0
+            return -mach  # negative encodes Mach type
+        elif txt.startswith('N'):
+            # ICAO Doc 4444: N + 4 figures in knots (e.g. N0485 -> 485 kt)
+            return float(txt[1:]) * kts  # positive = CAS in m/s
+        else:
+            # Plain knot value for backward compatibility
+            return float(txt) * kts  # positive = CAS in m/s
     except ValueError:
         raise ValueError(f'Could not parse {txt} as speed.')
 
 
 def txt2tas(txt, h):
-    """Convert text to speed (EAS [kts]/MACH[-] to TAS[m/s])"""
+    """Convert text to speed (EAS [kts]/MACH[-] to TAS[m/s]).
+
+    Supports ICAO Doc 4444 speed notation:
+    - Knots : N + 4 figures (e.g. N0485 -> 485 kt CAS -> TAS)
+    - Mach  : M + 3 figures (e.g. M082  -> Mach 0.82 -> TAS)
+    Also accepts explicit decimal Mach (M0.82, .82) and plain knot values (485)
+    for backward compatibility.
+    """
     if len(txt) == 0:
         return -1.
     try:
         if txt[0] == 'M':
-            M_ = float(txt[1:])
-            if M_ >= 20:   # Handle M95 notation as .95
-                M_ = M_ * 0.01
+            mach_txt = txt[1:]
+            if '.' in mach_txt:
+                # Explicit decimal: e.g. M0.82 or M2.0 (supersonic)
+                M_ = float(mach_txt)
+            else:
+                # ICAO Doc 4444: M + 3 figures, implied decimal before last 2
+                # M082 -> 0.82, M150 -> 1.50, M200 -> 2.00
+                M_ = float(mach_txt) / 100.0
             acspd = mach2tas(M_, h)  # m/s
 
+        elif txt[0] == 'N':
+            # ICAO Doc 4444: N + 4 figures in knots CAS (e.g. N0485 -> 485 kt)
+            spd_ = float(txt[1:]) * kts
+            acspd = cas2tas(spd_, h)  # m/s
+
         elif txt[0] == '.' or (len(txt) >= 2 and txt[:2] == '0.'):
+            # Decimal Mach without prefix (e.g. 0.82)
             spd_ = float(txt)
             acspd = mach2tas(spd_, h)  # m/s
 
         else:
+            # Plain knot value for backward compatibility
             spd_ = float(txt) * kts
             acspd = cas2tas(spd_, h)  # m/s
     except ValueError:
