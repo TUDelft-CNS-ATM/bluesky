@@ -1,0 +1,13 @@
+# RESNAV TEST
+# Test resume navigation with PastCPA method
+# Two aircraft on shallow angle conflict (1.5 deg) at FL300
+
+00:00:00.00>PAN -0.9 119.8
+00:00:00.00>ASAS ON
+00:00:00.00>RESO MVP
+00:00:00.00>RESNAV PASTCPA
+
+00:00:00.00>CRE GA001 B737 -0.900000,119.800000 0 FL300 200
+00:00:00.00>CRECONFS GA002 B737 GA001 1.5 0 200 0 0 200
+
+00:00:00.00>ECHO Conflict between GA001 and GA002 - shallow angle (1.5 deg) at FL300
