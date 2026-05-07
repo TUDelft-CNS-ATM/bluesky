@@ -5,6 +5,7 @@ import bluesky as bs
 from bluesky.core import Entity
 from bluesky.stack import command
 from bluesky.tools.aero import nm,ft
+from bluesky.traffic.asas.resumenav import ResumeNavigation
 
 
 bs.settings.set_variable_defaults(asas_marh=1.01, asas_marv=1.01)
@@ -209,6 +210,7 @@ class ConflictResolution(Entity, replaceable=True):
         # Check if the requested method exists
         if name == 'OFF':
             ConflictResolution.select()
+            ResumeNavigation.select()
             return True, 'Conflict Resolution turned off.'
         method = methods.get(name, None)
         if method is None:
@@ -217,4 +219,6 @@ class ConflictResolution(Entity, replaceable=True):
 
         # Select the requested method
         method.select()
-        return True, f'Selected {method.__name__} as CR method.'
+        resnav = ResumeNavigation.select_default()
+        return True, f'Selected {method.__name__} as CR method.\n' + \
+                     f'Selected {resnav.__name__} as resume navigation method.'

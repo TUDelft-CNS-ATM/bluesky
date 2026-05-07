@@ -31,6 +31,14 @@ class ResumeNavigation(Entity, replaceable=True):
         '''
         pass
 
+    @classmethod
+    def select_default(cls):
+        ''' Select the default resume navigation method (PastCPA). '''
+        default = cls.derived().get('PASTCPA')
+        if default:
+            default.select()
+        return default
+
     @staticmethod
     @command(name='RESNAV')
     def setmethod(name : 'txt' = ''):
