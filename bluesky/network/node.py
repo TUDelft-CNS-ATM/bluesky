@@ -23,6 +23,7 @@ class Node(Entity):
         self.server_id = self.node_id[:-1] + seqidx2id(0)
         self.act_id = None
         self.nodes = set()
+        self.clients = set()
         self.servers = set()
 
         zmqctx = zmq.Context.instance()
@@ -145,6 +146,14 @@ class Node(Entity):
                                 elif sequence_idx == 0:
                                     self.servers.discard(sender_id)
                                     self.server_removed.emit(sender_id)
+
+                        elif sender_id[0]  == GROUPID_CLIENT:
+                            # This is a client (un)subscribe message subscription
+                            # Use this to track clients
+                            if ctx.msg[0][0] == MSG_SUBSCRIBE:
+                                self.clients.add(sender_id)
+                            elif ctx.msg[0][0] == MSG_UNSUBSCRIBE:
+                                self.clients.discard(sender_id)
 
         except zmq.ZMQError:
             return False
