@@ -1,0 +1,5 @@
+sphinx>=7,<9
+myst-parser>=3
+sphinx-rtd-theme>=2
+sphinx-copybutton
+sphinx-design
