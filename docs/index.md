@@ -30,38 +30,65 @@ quickstart
 ```
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: User guide
 
-user-guide/index
+user-guide/ui-tour
+user-guide/command-syntax
+user-guide/scenario-files
+user-guide/running-modes
+user-guide/configuration
+user-guide/logging-and-output
+user-guide/other-uis
 ```
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Reference
 
-reference/index
+reference/commands/index
+reference/cli
+reference/settings-reference
 ```
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Simulator concepts
 
-concepts/index
+concepts/architecture
+concepts/simulation-loop
+concepts/traffic-model
+concepts/performance-models
+concepts/autopilot-fms
+concepts/conflict-detection-resolution
+concepts/wind-weather-adsb
+concepts/networking
 ```
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Plugins
 
 plugins/index
+plugins/using-plugins
+plugins/first-plugin
+plugins/traffic-arrays
+plugins/timed-functions-and-signals
+plugins/stack-commands
+plugins/replaceable-entities
+plugins/gui-plugins
+plugins/custom-importers
 ```
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Python API
 
 api/index
+api/core
+api/stack
+api/traffic
+api/tools
 ```
 
 ```{toctree}

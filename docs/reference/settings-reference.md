@@ -64,8 +64,8 @@ and overridden.
 ```{note}
 Most of these correspond directly to a command that changes the same value
 at runtime (e.g. `DTLOOK` for `asas_dtlookahead`, `IMPL PERFBASE` for
-`performance_model`) — see the [command reference](index.md) for the full
-set. Modules and plugins can also register their own settings with
+`performance_model`) — see the [command reference](commands/index.md) for
+the full set. Modules and plugins can also register their own settings with
 `settings.set_variable_defaults(...)`, so this list only covers what ships
 with BlueSky's own `default.cfg`.
 ```
