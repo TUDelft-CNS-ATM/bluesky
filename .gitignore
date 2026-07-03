@@ -94,18 +94,3 @@ ssd.obj
 *-checkpoint.py
 *-checkpoint.ipynb
 .ropeproject/config.py
-
-# RL routing experiment outputs (local scratch data, plots, logs)
-/*.pkl
-/*_reward.csv
-/fuel*.csv
-/noise*.csv
-/population_mean_1km.csv
-/reward.png
-/E_*.png
-/qloss.png
-/data/
-policy_plotter/*.pkl
-policy_plotter/*.png
-policy_plotter/*.csv
-policy_plotter/E_*/
