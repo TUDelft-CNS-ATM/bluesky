@@ -146,5 +146,8 @@ inline double kwikdist(const kwik_in& in)
 
 inline double kwikqdr(const kwik_in &in)
 {
-    return fmod(atan2(in.dlon * in.cavelat, in.dlat), 360.0);
+    // atan2() returns an angle in the range [-π, π]. Normalize negative
+    // values to [0, 2π) so the bearing is always expressed as a positive angle.
+    double qdr = atan2(in.dlon * in.cavelat, in.dlat);
+    return qdr < 0.0 ? qdr + 2.0 * M_PI : qdr;
 }
