@@ -358,7 +358,7 @@ class OpenAP(PerfBase):
         vminfw = np.where(self.phase[ifw] == ph.NA, 0, vminfw)
         vminfw = np.where(self.phase[ifw] == ph.IC, self.vminic[ifw], vminfw)
         vminfw = np.where(
-            (self.phase[ifw] >= ph.CL) | (self.phase[ifw] <= ph.DE), self.vminer[ifw], vminfw
+            (self.phase[ifw] >= ph.CL) & (self.phase[ifw] <= ph.DE), self.vminer[ifw], vminfw
         )
         vminfw = np.where(self.phase[ifw] == ph.AP, self.vminap[ifw], vminfw)
         vminfw = np.where(self.phase[ifw] == ph.GD, 0, vminfw)
@@ -367,7 +367,7 @@ class OpenAP(PerfBase):
         vmaxfw = np.where(self.phase[ifw] == ph.NA, self.vmaxer[ifw], vmaxfw)
         vmaxfw = np.where(self.phase[ifw] == ph.IC, self.vmaxic[ifw], vmaxfw)
         vmaxfw = np.where(
-            (self.phase[ifw] >= ph.CL) | (self.phase[ifw] <= ph.DE), self.vmaxer[ifw], vmaxfw
+            (self.phase[ifw] >= ph.CL) & (self.phase[ifw] <= ph.DE), self.vmaxer[ifw], vmaxfw
         )
         vmaxfw = np.where(self.phase[ifw] == ph.AP, self.vmaxap[ifw], vmaxfw)
         vmaxfw = np.where(self.phase[ifw] == ph.GD, self.vmaxic[ifw], vmaxfw)
