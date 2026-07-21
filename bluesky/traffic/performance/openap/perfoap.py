@@ -355,7 +355,7 @@ class OpenAP(PerfBase):
         # obtain flight envelope for speed, roc, and alt, based on flight phase
 
         # --- minimum speed ---
-        vminfw = np.where(self.phase[ifw] == ph.NA, 0, vminfw)
+        vminfw = np.where(self.phase[ifw] == ph.NA, self.vminer[ifw], vminfw)
         vminfw = np.where(self.phase[ifw] == ph.IC, self.vminic[ifw], vminfw)
         vminfw = np.where(
             (self.phase[ifw] >= ph.CL) & (self.phase[ifw] <= ph.DE), self.vminer[ifw], vminfw
