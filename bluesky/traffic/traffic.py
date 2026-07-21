@@ -13,7 +13,7 @@ from bluesky.tools.aero import casormach2tas, fpm, kts, ft, g0, Rearth, nm, tas2
                          vatmos,  vtas2cas, vtas2mach, vcasormach
 
 
-from bluesky.traffic.asas import ConflictDetection, ConflictResolution
+from bluesky.traffic.asas import ConflictDetection, ConflictResolution, ResumeNavigation
 from .windsim import WindSim
 from .conditional import Condition
 from .trails import Trails
@@ -130,6 +130,7 @@ class Traffic(Entity):
             # Flight Models
             self.cd       = ConflictDetection()
             self.cr       = ConflictResolution()
+            self.resnav   = ResumeNavigation()
             self.ap       = Autopilot()
             self.aporasas = APorASAS()
             self.adsb     = ADSB()
@@ -406,6 +407,7 @@ class Traffic(Entity):
         if self.asastimer.readynext:
             self.cd.update(self, self)
             self.cr.update(self.cd, self, self)
+            self.resnav.update(self.cd, self, self)
 
         self.aporasas.update()   # Decide to use autopilot or ASAS for commands
 
