@@ -124,8 +124,10 @@ inline pos kwikpos(const double& lat1, const double& lon1, const double& qdr, co
 }
 
 struct kwik_in {double dlat, dlon, cavelat;
+    // remainder() wraps the longitude difference to [-pi, pi] so the shortest
+    // way around is taken (e.g. across the antimeridian).
     kwik_in(const double& lat1, const double& lon1, const double& lat2, const double& lon2) :
-        dlat(lat2 - lat1), dlon(lon2 - lon1), cavelat(cos(0.5 * (lat1 + lat2))) {};
+        dlat(lat2 - lat1), dlon(remainder(lon2 - lon1, 2.0 * M_PI)), cavelat(cos(0.5 * (lat1 + lat2))) {};
 };
 
 // quick distance calculation (using equirectangular distance approximation)
@@ -146,5 +148,8 @@ inline double kwikdist(const kwik_in& in)
 
 inline double kwikqdr(const kwik_in &in)
 {
-    return fmod(atan2(in.dlon * in.cavelat, in.dlat), 360.0);
+    // atan2() returns an angle in the range [-π, π]. Normalize negative
+    // values to [0, 2π) so the bearing is always expressed as a positive angle.
+    double qdr = atan2(in.dlon * in.cavelat, in.dlat);
+    return qdr < 0.0 ? qdr + 2.0 * M_PI : qdr;
 }

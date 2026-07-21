@@ -562,7 +562,7 @@ static PyObject* cgeo_kwikqdrdist(PyObject* self, PyObject* args)
         }
         Py_DECREF(arr1);
         Py_DECREF(arr2);
-        return dst;
+        return Py_BuildValue("NN", qdr, dst);
     }
     // Arguments should be all scalars
     kwik_in in(DEG2RAD * PyFloat_AsDouble(arg1),
