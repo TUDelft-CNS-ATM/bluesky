@@ -310,13 +310,12 @@ class Traffic(glh.RenderObject, layer=100):
                         txt += "%05d/" % int(round(alt / ft))
 
                     # Speed
-                    if spd < 0:
+                    if spd <= -999:                   # not specified
                         txt += "--- "
-                    # TODO: get from sim
-                    elif spd > settings.casmach_threshold:
+                    elif spd < 0:                     # Mach (stored negative)
+                        txt += f"M{-spd:.2f}"
+                    else:                             # CAS in m/s
                         txt += "%03d" % int(round(spd / kts))
-                    else:
-                        txt += f"M{spd:.2f}" # Mach number
 
                 wpname += txt.ljust(24)  # Fill out with spaces
             self.routelbl.update(texdepth=np.array(wpname.encode('ascii', 'ignore')),
