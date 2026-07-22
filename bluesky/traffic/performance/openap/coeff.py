@@ -97,7 +97,7 @@ class Coefficient:
 
             limits_fixwing[mdl]["hmax"] = wrap.cruise_max_alt()[_OPT] * 1000.0
             limits_fixwing[mdl]["crosscl"] = wrap.climb_cross_alt_conmach()[_OPT]
-            limits_fixwing[mdl]["crossde"] = wrap.descent_const_vcas()[_OPT]
+            limits_fixwing[mdl]["crossde"] = wrap.descent_cross_alt_concas()[_OPT]
 
             limits_fixwing[mdl]["axmax"] = wrap.takeoff_acceleration()[_MAX]
 
@@ -110,9 +110,9 @@ class Coefficient:
 
             limits_fixwing[mdl]["vsmin"] = min(
                 wrap.initclimb_vs()[_MIN],
-                wrap.climb_vs_pre_concas()[_MIN],
-                wrap.climb_vs_concas()[_MIN],
-                wrap.climb_vs_conmach()[_MIN],
+                wrap.descent_vs_post_concas()[_MIN],
+                wrap.descent_vs_concas()[_MIN],
+                wrap.descent_vs_conmach()[_MIN],
             )
 
         return limits_fixwing
@@ -158,8 +158,8 @@ class Coefficient:
             SfS = _polar["flaps"]["Sf/S"]
             delta_cd_flap_to = lambda_f * (cfc)**1.38 * SfS * np.sin(np.deg2rad(flap_to)) ** 2
             delta_cd_flap_ld = lambda_f * (cfc)**1.38 * SfS * np.sin(np.deg2rad(flap_ld)) ** 2
-            dragpolar[mdl]["cd0_to"] = _polar["clean"]["cd0"] + delta_cd_flap_to
-            dragpolar[mdl]["cd0_ld"] = _polar["clean"]["cd0"] + delta_cd_flap_ld
+            dragpolar[mdl]["cd0_to"] = round(float(_polar["clean"]["cd0"] + delta_cd_flap_to), 3)
+            dragpolar[mdl]["cd0_ld"] = round(float(_polar["clean"]["cd0"] + delta_cd_flap_ld), 3)
 
             if self.acs_fixwing[mdl]['engine']['mount'] == "rear":
                 delta_e_flap_to = 0.0046 * flap_to
@@ -169,8 +169,8 @@ class Coefficient:
                 delta_e_flap_ld = 0.0026 * flap_ld
             
             ar = self.acs_fixwing[mdl]["wing"]["span"] ** 2 / self.acs_fixwing[mdl]["wing"]["area"]
-            dragpolar[mdl]["k_to"] = 1 / (1 / _polar["clean"]["k"] + np.pi * ar * delta_e_flap_to)
-            dragpolar[mdl]["k_ld"] = 1 / (1 / _polar["clean"]["k"] + np.pi * ar * delta_e_flap_ld)
+            dragpolar[mdl]["k_to"] = round(1 / (1 / _polar["clean"]["k"] + np.pi * ar * delta_e_flap_to), 3)
+            dragpolar[mdl]["k_ld"] = round(1 / (1 / _polar["clean"]["k"] + np.pi * ar * delta_e_flap_ld), 3)
             dragpolar[mdl]["delta_cd_gear"] = _polar["gears"]
 
         return dragpolar
