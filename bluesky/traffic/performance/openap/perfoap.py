@@ -223,7 +223,7 @@ class OpenAP(PerfBase):
 
         # ----- compute net thrust -----
         self.thrust[idx_fixwing] = (
-            self.drag[idx_fixwing] + self.mass[idx_fixwing] * bs.traf.ax[idx_fixwing]
+            self.drag[idx_fixwing] + self.mass[idx_fixwing] * bs.traf.kinematics.ax[idx_fixwing]
         )
 
         # ----- compute fuel flow -----
