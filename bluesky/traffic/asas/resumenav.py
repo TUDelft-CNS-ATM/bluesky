@@ -63,4 +63,6 @@ class ResumeNavigation(Entity, replaceable=True):
 
         # Select the requested method
         method.select()
-        return True, f'Selected {method.__name__} as resume navigation method.'
+        msg = f'Selected {method.__name__} as resume navigation method.'
+        selectedmsg = getattr(method.instance(), 'selectedmsg', None)
+        return True, f'{msg}\n{selectedmsg()}' if selectedmsg else msg
