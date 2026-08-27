@@ -1523,7 +1523,7 @@ class Route(Base):
                             # xtorta stays the same! This leg will not be available for RTA scheduling, so distance
                             # is not in xtorta. Therefore we need to subtract legtime to ignore this leg for the RTA
                             # scheduling
-                            legtime = self.wpdistto[i+1]/legtas
+                            legtime = self.wpdistto[i+1] * nm / legtas
                             torta = torta - legtime
                     else:
                         xtorta = 0.0
