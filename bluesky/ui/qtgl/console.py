@@ -161,6 +161,16 @@ class Console(QWidget):
                 # self.radarwidget.previewpoly(None)
                 return
 
+        if event.key() == Qt.Key.Key_V and event.modifiers() & (Qt.KeyboardModifier.MetaModifier | Qt.KeyboardModifier.ControlModifier):
+            clipboard = QApplication.clipboard()
+            text = clipboard.text()
+            if text:
+                text = text.replace('\x00', '').strip('\r\n')
+                pos = self.lineEdit.cursor_pos()
+                newcmd = self.command_line[:pos] + text + self.command_line[pos:]
+                self.set_cmdline(newcmd, pos + len(text))
+            return
+
         newcmd = self.command_line
         cursorpos = None
         if event.key() >= Qt.Key.Key_Space and event.key() <= Qt.Key.Key_AsciiTilde \
