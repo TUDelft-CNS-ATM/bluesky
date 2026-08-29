@@ -273,13 +273,16 @@ class OpenAP(PerfBase):
         """
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 
-        intent_v_cas = aero.vtas2cas(intent_v_tas, allow_h)
+
+        # Speed envelope is evaluated at the current altitude, not the intended one.
+        h = bs.traf.alt
+        intent_v_cas = aero.vtas2cas(intent_v_tas, h)
         allow_v_cas = np.where((intent_v_cas < self.vmin), self.vmin, intent_v_cas)
         allow_v_cas = np.where(intent_v_cas > self.vmax, self.vmax, allow_v_cas)
-        allow_v_tas = aero.vcas2tas(allow_v_cas, allow_h)
+        allow_v_tas = aero.vcas2tas(allow_v_cas, h)
         allow_v_tas = np.where(
-            aero.vtas2mach(allow_v_tas, allow_h) > self.mmo,
-            aero.vmach2tas(self.mmo, allow_h),
+            aero.vtas2mach(allow_v_tas, h) > self.mmo,
+            aero.vmach2tas(self.mmo, h),
             allow_v_tas,
         )  # maximum cannot exceed MMO
 
