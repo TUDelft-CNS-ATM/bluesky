@@ -241,20 +241,24 @@ class MVP(ConflictResolution):
         # Cap the vertical speed
         vscapped = np.maximum(ownship.perf.vsmin,np.minimum(ownship.perf.vsmax,newvs))
 
+        
+        # To compute asas alt, timesolveV is used. timesolveV is a really big value (1e9)
+        # when there is no conflict. Therefore asas alt is only updated when its
+        # value is less than the look-ahead time, because for those aircraft are in conflict
+        altCondition = np.logical_and(timesolveV<conf.dtlookahead, np.abs(dv[2,:])>0.0)
+
         # Calculate if Autopilot selected altitude should be followed. This avoids ASAS from
         # climbing or descending longer than it needs to if the autopilot leveloff
         # altitude also resolves the conflict. Because asasalttemp is calculated using
         # the time to resolve, it may result in climbing or descending more than the selected
         # altitude.
-        asasalttemp = vscapped * timesolveV + ownship.alt
+        asasalttemp = np.where(altCondition, vscapped * timesolveV + ownship.alt, ownship.selalt)
+
         signdvs = np.sign(vscapped - ownship.ap.vs * np.sign(ownship.selalt - ownship.alt))
         signalt = np.sign(asasalttemp - ownship.selalt)
         alt = np.where(np.logical_or(signdvs == 0, signdvs == signalt), asasalttemp, ownship.selalt)
 
-        # To compute asas alt, timesolveV is used. timesolveV is a really big value (1e9)
-        # when there is no conflict. Therefore asas alt is only updated when its
-        # value is less than the look-ahead time, because for those aircraft are in conflict
-        altCondition = np.logical_and(timesolveV<conf.dtlookahead, np.abs(dv[2,:])>0.0)
+   
         alt[altCondition] = asasalttemp[altCondition]
 
         # If resolutions are limited in the horizontal direction, then asasalt should
@@ -331,8 +335,11 @@ class MVP(ConflictResolution):
 
         # Compute the resolution velocity vector in the vertical direction
         # The direction of the vertical resolution is such that the aircraft with
-        # higher climb/decent rate reduces their climb/decent rate
-        dv3 = np.where(abs(vrel[2]) > 0.0, (iV / tsolV) * (-vrel[2] / abs(vrel[2])), (iV / tsolV))
+        # higher climb/decent rate reduces their climb/decent rate. It must be
+        # antisymmetric between the two aircraft of a pair, otherwise a  
+        # pair manoeuvres the same way and never separates
+        dirV = np.where(abs(drel[2]) > 0.0, drel[2] / abs(drel[2]), np.sign(idx1 - idx2))
+        dv3 = np.where(abs(vrel[2]) > 0.0, (iV / tsolV) * (-vrel[2] / abs(vrel[2])), (iV / tsolV) * dirV)
 
         # It is necessary to cap dv3 to prevent that a vertical conflict
         # is solved in 1 timestep, leading to a vertical separation that is too
