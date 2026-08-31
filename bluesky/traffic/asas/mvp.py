@@ -261,7 +261,7 @@ class MVP(ConflictResolution):
 
         # If resolutions are limited in the horizontal direction, then asasalt should
         # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed
-        # using the auto pilot vertical speed (ownship.avs) using the code above (altsolveV) when only
+        # using the auto pilot vertical speed (ownship.avs) using the code above (asasalttemp) when only
         # horizontal resolutions are allowed.
         alt = alt * (1 - self.swresohoriz) + ownship.selalt * self.swresohoriz
         return newtrack, newgscapped, vscapped, alt
