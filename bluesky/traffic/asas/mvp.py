@@ -252,18 +252,16 @@ class MVP(ConflictResolution):
         # altitude also resolves the conflict. Because asasalttemp is calculated using
         # the time to resolve, it may result in climbing or descending more than the selected
         # altitude.
-        asasalttemp = np.where(altCondition, vscapped * timesolveV + ownship.alt, ownship.selalt)
+        asasalttemp = vscapped * timesolveV + ownship.alt
 
         signdvs = np.sign(vscapped - ownship.ap.vs * np.sign(ownship.selalt - ownship.alt))
         signalt = np.sign(asasalttemp - ownship.selalt)
-        alt = np.where(np.logical_or(signdvs == 0, signdvs == signalt), asasalttemp, ownship.selalt)
-
-   
-        alt[altCondition] = asasalttemp[altCondition]
+        alt = np.select([altCondition, np.logical_or(signdvs == 0, signdvs == signalt)],
+                        [asasalttemp, ownship.selalt], default=ownship.selalt)
 
         # If resolutions are limited in the horizontal direction, then asasalt should
         # be equal to auto pilot alt (aalt). This is to prevent a new asasalt being computed
-        # using the auto pilot vertical speed (ownship.avs) using the code in line 106 (asasalttemp) when only
+        # using the auto pilot vertical speed (ownship.avs) using the code above (altsolveV) when only
         # horizontal resolutions are allowed.
         alt = alt * (1 - self.swresohoriz) + ownship.selalt * self.swresohoriz
         return newtrack, newgscapped, vscapped, alt
