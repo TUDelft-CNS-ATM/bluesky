@@ -113,14 +113,6 @@ def initbasecmds():
             calculator,
             "Simple in-line math calculator, evaluates expression",
         ],
-        "CASMACHTHR": [
-            "CASMACHTHR threshold",
-            "float",
-            aero.casmachthr,
-            """Set a threshold below which speeds should be considered as Mach numbers
-               in CRE(ATE), ADDWPT, and SPD commands. Set to zero if speeds should
-               never be considered as Mach number(e.g., when simulating drones)."""
-        ],
         "CD": [
             "CD [path]",
             "[word]",

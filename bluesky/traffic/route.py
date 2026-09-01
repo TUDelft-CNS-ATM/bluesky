@@ -51,7 +51,7 @@ class Route(Base):
         self.wplat  = []    # List of waypoint latitudes
         self.wplon  = []    # List of waypoint longitudes
         self.wpalt  = []    # [m] negative value means not specified
-        self.wpspd  = []    # [m/s] negative value means not specified
+        self.wpspd  = []    # Negative = Mach (e.g. -0.82 = Mach 0.82), positive = CAS [m/s], -999 = not specified
         self.wprta  = []    # [m/s] negative value means not specified
         self.wpflyby = []   # Flyby (True)/flyover(False) switch
         self.wpstack = []   # Stack with command execured when passing this waypoint
@@ -683,9 +683,11 @@ class Route(Base):
 
                 # Show speed
                 if swspd:
-                    if acrte.wpspd[wpidx] < 0:
+                    if acrte.wpspd[wpidx] <= -999:   # not specified
                         txt += "---"
-                    else:
+                    elif acrte.wpspd[wpidx] < 0:     # Mach (stored negative)
+                        txt += f"M{-acrte.wpspd[wpidx]:.2f}"
+                    else:                             # CAS in m/s
                         txt += str(int(round(acrte.wpspd[wpidx] / kts)))
 
                 # Type
@@ -1065,7 +1067,7 @@ class Route(Base):
                                     acrte.wptorta[wpidx],acrte.wpxtorta[wpidx])
 
         # If there is a speed specified, process it
-        if acrte.wpspd[wpidx]>0.:
+        if acrte.wpspd[wpidx] > -999.:  # speed is specified (CAS>0 or Mach<0)
             # Set target speed for autopilot
 
             if acrte.wpalt[wpidx] < 0.0:
@@ -1074,8 +1076,8 @@ class Route(Base):
                 alt = acrte.wpalt[wpidx]
 
             # Check for valid Mach or CAS
-            if acrte.wpspd[wpidx] <2.0:
-                cas = mach2cas(acrte.wpspd[wpidx], alt)
+            if acrte.wpspd[wpidx] < 0:
+                cas = mach2cas(-acrte.wpspd[wpidx], alt)
             else:
                 cas = acrte.wpspd[wpidx]
 
@@ -1172,12 +1174,12 @@ class Route(Base):
                     txt += str(int(round(acrte.wpalt[i] / ft))) + "/"
 
                 # Speed
-                if acrte.wpspd[i] < 0.:
+                if acrte.wpspd[i] <= -999.:           # not specified
                     txt += "---"
-                elif acrte.wpspd[i] > 2.0:
+                elif acrte.wpspd[i] < 0.:             # Mach (stored negative)
+                    txt += f"M{-acrte.wpspd[i]:.2f}"
+                else:                                  # CAS in m/s
                     txt += str(int(round(acrte.wpspd[i] / kts)))
-                else:
-                    txt += "M" + str(acrte.wpspd[i])
 
                 # Type: orig, dest, C = flyby, | = flyover, U = flyturn
                 if acrte.wptype[i] == Route.orig:
@@ -1506,7 +1508,7 @@ class Route(Base):
                 else:
                     if i != self.nwp - 1:
                         # No speed or rta constraint: add to xtorta
-                        if self.wpspd[i] <= 0.0:
+                        if self.wpspd[i] <= -999.:  # no speed constraint
                             xtorta = xtorta + self.wpdistto[i + 1] * nm  # [m] xtoalt is in meters!
                         else:
                             # speed constraint on this leg: shift torta to account for this

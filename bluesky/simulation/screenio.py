@@ -6,7 +6,6 @@ import numpy as np
 import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
-from bluesky.tools import aero
 from bluesky.core.walltime import Timer
 from bluesky.network.publisher import state_publisher, StatePublisher
 
@@ -169,9 +168,6 @@ class ScreenIO(Entity):
 
         # Transition level as defined in traf
         data['translvl']   = bs.traf.translvl
-
-        # Send casmachthr for route visualization
-        data['casmachthr']    = aero.casmach_thr
 
         # ASAS resolutions for visualization. Only send when evaluated
         data['asastas']  = bs.traf.cr.tas

@@ -250,7 +250,7 @@ class Legacy(PerfBase):
 
         # energy share factor
         delspd = bs.traf.aporasas.tas - bs.traf.tas
-        selmach = bs.traf.selspd < 2.0
+        selmach = bs.traf.selspd < 0  # Negative selspd encodes Mach; positive = CAS in m/s
         self.ESF = esf(bs.traf.alt, bs.traf.M, climb, descent, delspd, selmach)
 
         # determine thrust
