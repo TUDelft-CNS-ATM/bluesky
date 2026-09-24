@@ -53,7 +53,8 @@ inline double dist(const qdr_d_in& ll1, const qdr_d_in& ll2)
                 / ( fabs(ll1.lat) + fabs(ll2.lat));
     }
 
-    double root = sindlat2 * sindlat2 + ll1.coslat * ll2.coslat * sindlon2 * sindlon2;
+    // Rounding can push root just above 1 for (near-)antipodal points
+    double root = fmin(1.0, sindlat2 * sindlat2 + ll1.coslat * ll2.coslat * sindlon2 * sindlon2);
     return 2.0 * r * atan2(sqrt(root), sqrt(1.0 - root));
 }
 
