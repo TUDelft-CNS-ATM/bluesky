@@ -149,6 +149,91 @@ static PyObject* elementwise(const char* name, PyObject* args, F func)
     return Py_BuildValue("NN", r0.release(), r1.release());
 }
 
+// Convert a lat/lon pair of arrays [deg] to a vector of points [rad]
+static bool to_points(const PyRef& lat, const PyRef& lon, std::vector<qdr_d_in>& points)
+{
+    npy_intp size = PyArray_SIZE(lat.arr());
+    if (PyArray_SIZE(lon.arr()) != size) {
+        PyErr_Format(PyExc_ValueError, "lat and lon have different sizes (%zd and %zd)",
+                     (Py_ssize_t)size, (Py_ssize_t)PyArray_SIZE(lon.arr()));
+        return false;
+    }
+    const double *plat = (double*)PyArray_DATA(lat.arr()),
+                 *plon = (double*)PyArray_DATA(lon.arr());
+    points.resize(size);
+    for (npy_intp i = 0; i < size; ++i)
+        points[i].init(DEG2RAD * plat[i], DEG2RAD * plon[i]);
+    return true;
+}
+
+// Optional: derive the (j, i) outputs from the (i, j) outputs, in place
+typedef void (*Mirror)(double* out);
+
+// Calculate an n1 x n2 matrix for each of the NOUT outputs of func(ll1, ll2, out),
+// between every point in lat1/lon1 and every point in lat2/lon2.
+template<int NOUT, typename F>
+static PyObject* matrix(const char* name, PyObject* args, F func, Mirror mirror)
+{
+    PyObject *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
+    if (!PyArg_UnpackTuple(args, name, 4, 4, &arg1, &arg2, &arg3, &arg4))
+        return NULL;
+
+    PyRef lat1(as_double_array(arg1, NPY_ARRAY_IN_ARRAY));
+    if (lat1.p == NULL) return NULL;
+    PyRef lon1(as_double_array(arg2, NPY_ARRAY_IN_ARRAY));
+    if (lon1.p == NULL) return NULL;
+    PyRef lat2(as_double_array(arg3, NPY_ARRAY_IN_ARRAY));
+    if (lat2.p == NULL) return NULL;
+    PyRef lon2(as_double_array(arg4, NPY_ARRAY_IN_ARRAY));
+    if (lon2.p == NULL) return NULL;
+
+    std::vector<qdr_d_in> ll1, ll2;
+    if (!to_points(lat1, lon1, ll1) || !to_points(lat2, lon2, ll2))
+        return NULL;
+
+    npy_intp n1 = ll1.size(), n2 = ll2.size();
+
+    // The same set of points passed twice (in the same memory)
+    bool same = n1 == n2 &&
+                PyArray_DATA(lat1.arr()) == PyArray_DATA(lat2.arr()) &&
+                PyArray_DATA(lon1.arr()) == PyArray_DATA(lon2.arr());
+
+    npy_intp shape[] = {n1, n2};
+    PyRef res[NOUT];
+    double* pres[NOUT];
+    for (int m = 0; m < NOUT; ++m) {
+        res[m].p = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
+        if (res[m].p == NULL)
+            return NULL;
+        pres[m] = (double*)PyArray_DATA(res[m].arr());
+    }
+
+    double out[NOUT];
+    for (npy_intp i = 0; i < n1; ++i) {
+        // With a mirror function, only the upper triangle is calculated
+        for (npy_intp j = (same && mirror) ? i : 0; j < n2; ++j) {
+            if (same && i == j) {
+                // Distance from a point to itself: skip the calculation
+                for (int m = 0; m < NOUT; ++m)
+                    pres[m][i * n2 + j] = 0.0;
+                continue;
+            }
+            func(ll1[i], ll2[j], out);
+            for (int m = 0; m < NOUT; ++m)
+                pres[m][i * n2 + j] = out[m];
+            if (same && mirror) {
+                mirror(out);
+                for (int m = 0; m < NOUT; ++m)
+                    pres[m][j * n2 + i] = out[m];
+            }
+        }
+    }
+
+    if (NOUT == 1)
+        return res[0].release();
+    return Py_BuildValue("NN", res[0].release(), res[NOUT - 1].release());
+}
+
 static PyObject* cgeo_rwgs84(PyObject* self, PyObject* args)
 {
     return elementwise<1, 1>("rwgs84", args, [](const double* in, double* out) {
@@ -170,71 +255,12 @@ static PyObject* cgeo_qdrdist(PyObject* self, PyObject* args)
 
 static PyObject* cgeo_qdrdist_matrix(PyObject* self, PyObject* args)
 {
-    PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
-    PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
-    if (!PyArg_ParseTuple(args, "OO|OO", &arg1, &arg2, &arg3, &arg4))
-        return NULL;
-
-    lat1 = (PyArrayObject*)PyArray_FROM_OTF(arg1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon1 = (PyArrayObject*)PyArray_FROM_OTF(arg2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lat2 = (PyArrayObject*)PyArray_FROM_OTF(arg3, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon2 = (PyArrayObject*)PyArray_FROM_OTF(arg4, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if (lat1 == NULL || lon1 == NULL) return NULL;
-
-    double *plat1 = (double*)PyArray_DATA(lat1),
-           *plon1 = (double*)PyArray_DATA(lon1);
-
-    double *plat2 = (lat2 == NULL ? plat1 : (double*)PyArray_DATA(lat2)),
-           *plon2 = (lon2 == NULL ? plon1 : (double*)PyArray_DATA(lon2));
-
-    // Determine sizes
-    npy_intp  size  = PyArray_SIZE(lat1);
-
-    int i = 0, j = 0;
-
-    // Create ll2 data for efficient nested loop
-    std::vector<qdr_d_in> ll2(size);
-    std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
-    while (i < size) {
-        pll2->init(DEG2RAD * *plat2, DEG2RAD * *plon2);
-        ++i; ++plat2; ++plon2; ++pll2;
-    }
-
-    // Create output matrices
-    npy_intp shape[] = {size, size};
-    PyObject* vqdr = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
-    PyObject* vdst = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
-
-    // Nested loop to calculate qdr and dist matrices
-    i = 0;
-    double *pqdr = (double*)PyArray_DATA((PyArrayObject*)vqdr);
-    double *pdst = (double*)PyArray_DATA((PyArrayObject*)vdst);
-
-    qdr_d_in ll1;
-    while (i < size) {
-        ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
-        pll2 = ll2.begin();
-        while (j < size) {
-            if (i == j) {
-                *pqdr = 0.0;
-                *pdst = 0.0;
-            } else {
-                *pqdr = RAD2DEG * qdr(ll1, *pll2);
-                *pdst = M2NM * dist(ll1, *pll2);
-            }
-            ++j; ++pll2; ++pqdr; ++pdst;
-        }
-        ++i; ++plat1; ++plon1;
-        j = 0;
-    }
-    //}
-    Py_DECREF(lat1);
-    Py_DECREF(lon1);
-    Py_XDECREF(lat2);// Py_XDECREF checks for NULL
-    Py_XDECREF(lon2);
-
-    return Py_BuildValue("NN", vqdr, vdst);
-};
+    // The bearing from j to i can't be derived from the bearing from i to j
+    return matrix<2>("qdrdist_matrix", args, [](const qdr_d_in& ll1, const qdr_d_in& ll2, double* out) {
+        out[0] = RAD2DEG * qdr(ll1, ll2);
+        out[1] = M2NM * dist(ll1, ll2);
+    }, NULL);
+}
 
 static PyObject* cgeo_latlondist(PyObject* self, PyObject* args)
 {
@@ -248,89 +274,10 @@ static PyObject* cgeo_latlondist(PyObject* self, PyObject* args)
 
 static PyObject* cgeo_latlondist_matrix(PyObject* self, PyObject* args)
 {
-    PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
-    PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
-    if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
-        return NULL;
-
-    lat1 = (PyArrayObject*)PyArray_FROM_OTF(arg1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon1 = (PyArrayObject*)PyArray_FROM_OTF(arg2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lat2 = (PyArrayObject*)PyArray_FROM_OTF(arg3, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon2 = (PyArrayObject*)PyArray_FROM_OTF(arg4, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if (lat1 == NULL || lon1 == NULL) return NULL;
-
-    double *plat1 = (double*)PyArray_DATA(lat1),
-           *plon1 = (double*)PyArray_DATA(lon1);
-
-    double *plat2 = (lat2 == NULL ? plat1 : (double*)PyArray_DATA(lat2)),
-           *plon2 = (lon2 == NULL ? plon1 : (double*)PyArray_DATA(lon2));
-
-    bool equal_latlon_arrays = (plat1 == plat2);
-
-    // Determine sizes
-    npy_intp  size  = PyArray_SIZE(lat1);
-
-    int i = 0, j = 0;
-
-    // Create ll2 data for efficient nested loop
-    std::vector<qdr_d_in> ll2(size);
-    std::vector<qdr_d_in>::iterator pll2 = ll2.begin();
-    while (i < size) {
-        pll2->init(DEG2RAD * *plat2, DEG2RAD * *plon2);
-        ++i; ++plat2; ++plon2; ++pll2;
-    }
-
-    // Create output matrices
-    npy_intp shape[] = {size, size};
-    PyObject* dst = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
-
-    // Nested loop to calculate dist matrix
-    i = 0;
-    double *pdst = (double*)PyArray_DATA((PyArrayObject*)dst);
-    if (equal_latlon_arrays) {
-        double *pdst_T = pdst;
-        std::vector<qdr_d_in>::iterator pll1 = ll2.begin();
-        pll2 = ll2.begin();
-        while (i < size) {
-            while (j < size) {
-                if (i == j) {
-                    *pdst = 0.0;
-                } else {
-                    *pdst = *pdst_T = M2NM * dist(*pll1, *pll2);
-                }
-                ++j; ++pll2; ++pdst;
-                pdst_T += size;
-            }
-            ++i; ++pll1;
-            pdst += i;
-            pdst_T = pdst;
-            j = i;
-            pll2 = ll2.begin() + j;
-        }
-    } else {
-        qdr_d_in ll1;
-        while (i < size) {
-            ll1.init(DEG2RAD * *plat1, DEG2RAD * *plon1);
-            pll2 = ll2.begin();
-            while (j < size) {
-                if (i == j) {
-                    *pdst = 0.0;
-                } else {
-                    *pdst = M2NM * dist(ll1, *pll2);
-                }
-                ++j; ++pll2; ++pdst;
-            }
-            ++i; ++plat1; ++plon1;
-            j = 0;
-        }
-    }
-    Py_DECREF(lat1);
-    Py_DECREF(lon1);
-    Py_XDECREF(lat2);// Py_XDECREF checks for NULL
-    Py_XDECREF(lon2);
-
-    return Py_BuildValue("N", dst);
-};
+    return matrix<1>("latlondist_matrix", args, [](const qdr_d_in& ll1, const qdr_d_in& ll2, double* out) {
+        out[0] = M2NM * dist(ll1, ll2);
+    }, [](double* out) {});
+}
 
 static PyObject* cgeo_wgsg(PyObject* self, PyObject* args)
 {
@@ -358,78 +305,10 @@ static PyObject* cgeo_kwikdist(PyObject* self, PyObject* args)
 
 static PyObject* cgeo_kwikdist_matrix(PyObject* self, PyObject* args)
 {
-    PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
-    PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
-    if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
-        return NULL;
-
-    lat1 = (PyArrayObject*)PyArray_FROM_OTF(arg1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon1 = (PyArrayObject*)PyArray_FROM_OTF(arg2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lat2 = (PyArrayObject*)PyArray_FROM_OTF(arg3, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon2 = (PyArrayObject*)PyArray_FROM_OTF(arg4, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if (lat1 == NULL || lon1 == NULL) return NULL;
-
-    double *plat1 = (double*)PyArray_DATA(lat1),
-           *plon1 = (double*)PyArray_DATA(lon1);
-
-    double *plat2 = (lat2 == NULL ? plat1 : (double*)PyArray_DATA(lat2)),
-           *plon2 = (lon2 == NULL ? plon1 : (double*)PyArray_DATA(lon2));
-
-    bool equal_latlon_arrays = (plat1 == plat2);
-
-    // Determine sizes
-    npy_intp  size  = PyArray_SIZE(lat1);
-
-    // Create output matrices
-    npy_intp shape[] = {size, size};
-    PyObject* dst = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
-    double *pdst  = (double*)PyArray_DATA((PyArrayObject*)dst);
-    // Nested loop to calculate dist matrix
-    int i = 0, j = 0;
-    if (equal_latlon_arrays) {
-        double *pdst_T = pdst;
-        while (i < size) {
-            while (j < size) {
-                if (i == j) {
-                    *pdst = 0.0;
-                } else {
-                    *pdst = *pdst_T = M2NM * kwikdist(
-                        kwik_in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2));
-                }
-                ++j; ++plat2; ++plon2; ++pdst;
-                pdst_T += size;
-            }
-            ++i; ++plat1; ++plon1;
-            pdst += i;
-            pdst_T = pdst;
-            j = i;
-            plat2 = (double*)PyArray_DATA(lat2) + j;
-            plon2 = (double*)PyArray_DATA(lon2) + j;
-        }
-    } else {
-        while (i < size) {
-            while (j < size) {
-                if (i == j) {
-                    *pdst = 0.0;
-                } else {
-                    *pdst = M2NM * kwikdist(
-                        kwik_in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2));
-                }
-                ++j; ++plat2; ++plon2; ++pdst;
-            }
-            ++i; ++plat1; ++plon1;
-            j = 0;
-            plat2 = (double*)PyArray_DATA(lat2);
-            plon2 = (double*)PyArray_DATA(lon2);
-        }
-    }
-    Py_DECREF(lat1);
-    Py_DECREF(lon1);
-    Py_XDECREF(lat2);// Py_XDECREF checks for NULL
-    Py_XDECREF(lon2);
-
-    return Py_BuildValue("N", dst);
-};
+    return matrix<1>("kwikdist_matrix", args, [](const qdr_d_in& ll1, const qdr_d_in& ll2, double* out) {
+        out[0] = M2NM * kwikdist(kwik_in(ll1.lat, ll1.lon, ll2.lat, ll2.lon));
+    }, [](double* out) {});
+}
 
 static PyObject* cgeo_kwikqdrdist(PyObject* self, PyObject* args)
 {
@@ -442,86 +321,14 @@ static PyObject* cgeo_kwikqdrdist(PyObject* self, PyObject* args)
 
 static PyObject* cgeo_kwikqdrdist_matrix(PyObject* self, PyObject* args)
 {
-    PyObject      *arg1 = NULL, *arg2 = NULL, *arg3 = NULL, *arg4 = NULL;
-    PyArrayObject *lat1 = NULL, *lon1 = NULL, *lat2 = NULL, *lon2 = NULL;
-    if (!PyArg_ParseTuple(args, "OOOO", &arg1, &arg2, &arg3, &arg4))
-        return NULL;
-
-    lat1 = (PyArrayObject*)PyArray_FROM_OTF(arg1, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon1 = (PyArrayObject*)PyArray_FROM_OTF(arg2, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lat2 = (PyArrayObject*)PyArray_FROM_OTF(arg3, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    lon2 = (PyArrayObject*)PyArray_FROM_OTF(arg4, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if (lat1 == NULL || lon1 == NULL) return NULL;
-
-    double *plat1 = (double*)PyArray_DATA(lat1),
-           *plon1 = (double*)PyArray_DATA(lon1);
-
-    double *plat2 = (lat2 == NULL ? plat1 : (double*)PyArray_DATA(lat2)),
-           *plon2 = (lon2 == NULL ? plon1 : (double*)PyArray_DATA(lon2));
-
-    bool equal_latlon_arrays = (plat1 == plat2);
-
-    // Determine sizes
-    npy_intp  size  = PyArray_SIZE(lat1);
-
-    // Create output matrices
-    npy_intp shape[] = {size, size};
-    PyObject *qdr  = PyArray_SimpleNew(2, shape, NPY_DOUBLE),
-             *dst  = PyArray_SimpleNew(2, shape, NPY_DOUBLE);
-    double   *pqdr = (double*)PyArray_DATA((PyArrayObject*)qdr),
-             *pdst = (double*)PyArray_DATA((PyArrayObject*)dst);
-    // Nested loop to calculate dist matrix
-    int i = 0, j = 0;
-    if (equal_latlon_arrays) {
-        double *pqdr_T = pqdr,
-               *pdst_T = pdst;
-        while (i < size) {
-            while (j < size) {
-                if (i == j) {
-                    *pqdr = 0.0;
-                    *pdst = 0.0;
-                } else {
-                    kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2);
-                    *pqdr = RAD2DEG * kwikqdr(in);
-                    *pqdr_T = fmod(*pqdr + 180.0, 360.0);
-                    *pdst = *pdst_T = M2NM * kwikdist(in);
-                }
-                ++j; ++plat2; ++plon2; ++pqdr; ++pdst;
-                pqdr_T += size; pdst_T += size;
-            }
-            ++i; ++plat1; ++plon1;
-            pqdr += i; pdst += i;
-            pqdr_T = pqdr; pdst_T = pdst;
-            j = i;
-            plat2 = (double*)PyArray_DATA(lat2) + j;
-            plon2 = (double*)PyArray_DATA(lon2) + j;
-        }
-    } else {
-        while (i < size) {
-            while (j < size) {
-                if (i == j) {
-                    *pqdr = 0.0;
-                    *pdst = 0.0;
-                } else {
-                    kwik_in in(DEG2RAD * *plat1, DEG2RAD * *plon1, DEG2RAD * *plat2, DEG2RAD * *plon2);
-                    *pqdr = RAD2DEG * kwikqdr(in);
-                    *pdst = M2NM * kwikdist(in);
-                }
-                ++j; ++plat2; ++plon2; ++pqdr; ++pdst;
-            }
-            ++i; ++plat1; ++plon1;
-            j = 0;
-            plat2 = (double*)PyArray_DATA(lat2);
-            plon2 = (double*)PyArray_DATA(lon2);
-        }
-    }
-    Py_DECREF(lat1);
-    Py_DECREF(lon1);
-    Py_XDECREF(lat2);// Py_XDECREF checks for NULL
-    Py_XDECREF(lon2);
-
-    return Py_BuildValue("NN", qdr, dst);
-};
+    return matrix<2>("kwikqdrdist_matrix", args, [](const qdr_d_in& ll1, const qdr_d_in& ll2, double* out) {
+        kwik_in kin(ll1.lat, ll1.lon, ll2.lat, ll2.lon);
+        out[0] = RAD2DEG * kwikqdr(kin);
+        out[1] = M2NM * kwikdist(kin);
+    }, [](double* out) {
+        out[0] = fmod(out[0] + 180.0, 360.0);
+    });
+}
 
 static struct PyMethodDef methods[] = {
     {"rwgs84", cgeo_rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec."},
