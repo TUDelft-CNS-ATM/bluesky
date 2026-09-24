@@ -501,8 +501,26 @@ class Traffic(Entity):
         # Update position
         self.alt = np.where(self.swaltsel, np.round(self.alt + self.vs * bs.sim.simdt, 6), self.aporasas.alt)
         self.lat = self.lat + np.degrees(bs.sim.simdt * self.gsnorth / Rearth)
+
+        # Past a pole, continue on the opposite meridian (lon + 180), where the
+        # local north and east directions point the other way: turn headings by 180 deg
+        # Ref. https://en.wikipedia.org/wiki/Local_tangent_plane_coordinates
+        overpole = np.abs(self.lat) > 90.0
+        if np.any(overpole):
+            self.lat[overpole] = np.sign(self.lat[overpole]) * 180.0 - self.lat[overpole]
+            self.lon[overpole] += 180.0
+            # Not in place: without wind, trk and hdg are the same array
+            self.hdg = np.where(overpole, (self.hdg + 180.0) % 360.0, self.hdg)
+            self.trk = np.where(overpole, (self.trk + 180.0) % 360.0, self.trk)
+            self.ap.trk = np.where(overpole, (self.ap.trk + 180.0) % 360.0, self.ap.trk)
+            self.actwp.curlegdir[overpole] = (self.actwp.curlegdir[overpole] + 180.0) % 360.0
+            self.gsnorth[overpole] = -self.gsnorth[overpole]
+            self.gseast[overpole] = -self.gseast[overpole]
+
         self.coslat = np.cos(np.deg2rad(self.lat))
         self.lon = self.lon + np.degrees(bs.sim.simdt * self.gseast / self.coslat / Rearth)
+        # Keep longitude in [-180, 180), e.g. when crossing the antimeridian
+        self.lon = (self.lon + 180.0) % 360.0 - 180.0
         self.distflown += self.gs * bs.sim.simdt
 
     def id2idx(self, acid):
