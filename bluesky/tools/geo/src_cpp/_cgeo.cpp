@@ -268,7 +268,7 @@ static PyObject* cgeo_latlondist(PyObject* self, PyObject* args)
         qdr_d_in ll1, ll2;
         ll1.init(DEG2RAD * in[0], DEG2RAD * in[1]);
         ll2.init(DEG2RAD * in[2], DEG2RAD * in[3]);
-        out[0] = M2NM * dist(ll1, ll2);
+        out[0] = dist(ll1, ll2);
     });
 }
 
@@ -331,12 +331,12 @@ static PyObject* cgeo_kwikqdrdist_matrix(PyObject* self, PyObject* args)
 }
 
 static struct PyMethodDef methods[] = {
-    {"rwgs84", cgeo_rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec."},
-    {"rwgs84_matrix", cgeo_rwgs84, METH_VARARGS, "Get local earth radius using WGS'84 spec (for vectors)."},
-    {"qdrdist", cgeo_qdrdist, METH_VARARGS, "Calculate bearing and distance between lat1+lon1 and lat2+lon2"},
-    {"qdrdist_matrix", cgeo_qdrdist_matrix, METH_VARARGS, "Calculate bearing and distance matrices between vectors lat1+lon1/lat2+lon2"},
-    {"latlondist", cgeo_latlondist, METH_VARARGS, "Calculate distance between lat1+lon1 and lat2+lon2"},
-    {"latlondist_matrix", cgeo_latlondist_matrix, METH_VARARGS, "Calculate distance matrix between vectors lat1+lon1/lat2+lon2"},
+    {"rwgs84", cgeo_rwgs84, METH_VARARGS, "Get local earth radius [m] using WGS'84 spec."},
+    {"rwgs84_matrix", cgeo_rwgs84, METH_VARARGS, "Get local earth radius [m] using WGS'84 spec (for vectors)."},
+    {"qdrdist", cgeo_qdrdist, METH_VARARGS, "Calculate bearing [deg] and distance [nm] between lat1+lon1 and lat2+lon2"},
+    {"qdrdist_matrix", cgeo_qdrdist_matrix, METH_VARARGS, "Calculate bearing [deg] and distance [nm] matrices between vectors lat1+lon1/lat2+lon2"},
+    {"latlondist", cgeo_latlondist, METH_VARARGS, "Calculate distance [m] between lat1+lon1 and lat2+lon2"},
+    {"latlondist_matrix", cgeo_latlondist_matrix, METH_VARARGS, "Calculate distance matrix [nm] between vectors lat1+lon1/lat2+lon2"},
     {"wgsg", cgeo_wgsg, METH_VARARGS, "Gravity acceleration at a given latitude according to WGS'84"},
     {"qdrpos", cgeo_qdrpos, METH_VARARGS, "Calculate position from reference position, bearing and distance"},
     {"kwikdist", cgeo_kwikdist, METH_VARARGS, "Quick and dirty dist [nm]"},

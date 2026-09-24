@@ -178,7 +178,7 @@ def latlondist(latd1, lond1, latd2, lond2):
         Input:
               two lat/lon positions in degrees
         Out:
-              distance in meters !!!! """
+              distance in meters !!!! (unlike latlondist_matrix, which returns nm) """
 
     # Haversine with average radius
 
@@ -224,7 +224,7 @@ def latlondist_matrix(lat1, lon1, lat2, lon2):
         Input:
               two lat/lon position vectors in degrees
         Out:
-              distance vector in meters !!!! """
+              distance matrix in nm !!!! (unlike latlondist, which returns meters) """
     prodla =  lat1.T*lat2
     condition = prodla < 0
 
