@@ -95,22 +95,33 @@ class ResourcePath(MultiplexedPath):
     __truediv__ = joinpath
 
 
-def resource(*descendants):
-    ''' Get a path pointing to a BlueSky resource.
+class Resource:
+    ''' Callable that gets a path pointing to a BlueSky resource.
 
-        Arguments:
-        - descendants: Zero or more path-like objects (Path or str)
-
-        Returns:
-        - Path pointing to resource (file or directory)
-          If arguments form an absolute path it is returned directly,
-          otherwise a path relative to BlueSky's resource paths is returned.
+        A class rather than a function, so type checkers know about path.
     '''
-    ret = Path(*descendants)
-    if ret.is_absolute():
-        return ret
+    # BlueSky's resource paths; init() adds the working directory
+    path: ResourcePath
 
-    return resource.path.joinpath(*descendants)
+    def __call__(self, *descendants):
+        ''' Get a path pointing to a BlueSky resource.
+
+            Arguments:
+            - descendants: Zero or more path-like objects (Path or str)
+
+            Returns:
+            - Path pointing to resource (file or directory)
+              If arguments form an absolute path it is returned directly,
+              otherwise a path relative to BlueSky's resource paths is returned.
+        '''
+        ret = Path(*descendants)
+        if ret.is_absolute():
+            return ret
+
+        return self.path.joinpath(*descendants)
+
+
+resource = Resource()
 resource.path = ResourcePath()
 
 
