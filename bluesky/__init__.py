@@ -1,5 +1,6 @@
 ''' BlueSky: The open-source ATM simulator.'''
 import importlib
+from typing import TYPE_CHECKING, cast
 # from bluesky import settings, stack
 from bluesky.pathfinder import resource
 
@@ -19,14 +20,26 @@ INIT, HOLD, OP, END = list(range(4))
 mode = ''
 gui = ''
 
-# Main singleton objects in BlueSky
-ref = None
-net = None
-traf = None
-navdb = None
-sim = None
-scr = None
-server = None
+# Main singleton objects in BlueSky. Each is None until init() creates it; they
+# are typed as the object init() creates in sim mode, which is what almost all
+# code that uses them runs in.
+if TYPE_CHECKING:
+    from bluesky.navdatabase import Navdatabase
+    from bluesky.network.detached import Node as DetachedNode
+    from bluesky.network.node import Node
+    from bluesky.network.server import Server
+    from bluesky.refdata import RefData
+    from bluesky.simulation import ScreenIO, Simulation
+    from bluesky.traffic import Traffic
+    from bluesky.ui.pygame.screen import Screen
+
+ref: 'RefData' = cast('RefData', None)
+net: 'Node | DetachedNode' = cast('Node', None)
+traf: 'Traffic' = cast('Traffic', None)
+navdb: 'Navdatabase' = cast('Navdatabase', None)
+sim: 'Simulation' = cast('Simulation', None)
+scr: 'ScreenIO | Screen' = cast('ScreenIO', None)
+server: 'Server' = cast('Server', None)
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
