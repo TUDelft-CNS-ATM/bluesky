@@ -144,7 +144,7 @@ def initbasecmds():
 
         "CRE": [
             "CRE acid,type,lat,lon,hdg,alt,spd",
-            "txt,txt,latlon,[hdg,alt,spd]",
+            "txt,txt,latlon,[hdgorstar,alt,spd]",
             bs.traf.cre,
             "Create an aircraft",
         ],

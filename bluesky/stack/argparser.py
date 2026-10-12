@@ -295,6 +295,11 @@ argparsers = {
     'vspd': Parser(txt2vs),
     'alt': Parser(txt2alt),
     'hdg': Parser(lambda txt: txt2hdg(txt, bs.ref.lat, bs.ref.lon)),
+    # Like 'hdg', but also accepts '*' as "leave heading to the reference"
+    # (e.g. the runway heading of an airport/runway position). Only used
+    # where a None heading is meaningful to the called function.
+    'hdgorstar': Parser(lambda txt: None if txt.strip() == '*'
+                        else txt2hdg(txt, bs.ref.lat, bs.ref.lon)),
     'time': Parser(txt2tim),
     'colour': ColorArg(),
     'color': ColorArg(),
