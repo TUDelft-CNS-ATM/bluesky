@@ -80,7 +80,7 @@ def saveic(filename: 'word' = ''):
         # Altitude & VS
         if abs(bs.traf.alt[i] - bs.traf.ap.alt[i]) > 10.0:
             cmdline = "ALT " + bs.traf.id[i] + \
-                "," + repr(bs.traf.ap.alt[i] / ft)
+                "," + repr(float(bs.traf.ap.alt[i] / ft))
             f.write(timtxt + cmdline + "\n")
 
             # VS acid,vs
@@ -96,7 +96,7 @@ def saveic(filename: 'word' = ''):
         # Heading as well when heading select
         delhdg = (bs.traf.hdg[i] - bs.traf.ap.trk[i] + 180.0) % 360.0 - 180.0
         if abs(delhdg) > 0.5:
-            cmdline = "HDG " + bs.traf.id[i] + "," + repr(bs.traf.ap.trk[i])
+            cmdline = "HDG " + bs.traf.id[i] + "," + repr(float(bs.traf.ap.trk[i]))
             f.write(timtxt + cmdline + "\n")
 
         # Speed select mode? => Record a speed command
@@ -105,9 +105,9 @@ def saveic(filename: 'word' = ''):
 
         if abs(delspd) > 0.5*kts: # difference equal more than 1 knot (rounded), so 0.5* 0.514444 m/s
             if not(0.001<bs.traf.selspd[i]<1.0): # Check for Mach
-                spdcmd = round(bs.traf.selspd[i]/kts,2)
+                spdcmd = round(float(bs.traf.selspd[i]/kts),2)
             else:
-                spdcmd = bs.traf.selspd[i]
+                spdcmd = float(bs.traf.selspd[i])
 
             cmdline = "SPD " + bs.traf.id[i] + \
                 "," + repr(spdcmd)
@@ -137,19 +137,19 @@ def saveic(filename: 'word' = ''):
             cmdline = "ADDWPT " + bs.traf.id[i] + " "
             wpname = route.wpname[iwp]
             if wpname[: len(bs.traf.id[i])] == bs.traf.id[i]:
-                wpname = repr(route.wplat[iwp]) + "," + repr(route.wplon[iwp])
+                wpname = repr(float(route.wplat[iwp])) + "," + repr(float(route.wplon[iwp]))
             cmdline = cmdline + wpname + ","
 
             if route.wpalt[iwp] >= 0.0:
-                cmdline = cmdline + repr(route.wpalt[iwp] / ft) + ","
+                cmdline = cmdline + repr(float(route.wpalt[iwp] / ft)) + ","
             else:
                 cmdline = cmdline + ","
 
             if route.wpspd[iwp] >= 0.0:
                 if route.wpspd[iwp] > 1.0:
-                    cmdline = cmdline + repr(route.wpspd[iwp] / kts)
+                    cmdline = cmdline + repr(float(route.wpspd[iwp] / kts))
                 else:
-                    cmdline = cmdline + repr(route.wpspd[iwp])
+                    cmdline = cmdline + repr(float(route.wpspd[iwp]))
 
             f.write(timtxt + cmdline + "\n")
 
