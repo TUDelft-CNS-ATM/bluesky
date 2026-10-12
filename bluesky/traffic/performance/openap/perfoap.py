@@ -273,13 +273,16 @@ class OpenAP(PerfBase):
         """
         allow_h = np.where(intent_h > self.hmax, self.hmax, intent_h)
 
-        intent_v_cas = aero.vtas2cas(intent_v_tas, allow_h)
+
+        # Speed envelope is evaluated at the current altitude, not the intended one.
+        h = bs.traf.alt
+        intent_v_cas = aero.vtas2cas(intent_v_tas, h)
         allow_v_cas = np.where((intent_v_cas < self.vmin), self.vmin, intent_v_cas)
         allow_v_cas = np.where(intent_v_cas > self.vmax, self.vmax, allow_v_cas)
-        allow_v_tas = aero.vcas2tas(allow_v_cas, allow_h)
+        allow_v_tas = aero.vcas2tas(allow_v_cas, h)
         allow_v_tas = np.where(
-            aero.vtas2mach(allow_v_tas, allow_h) > self.mmo,
-            aero.vmach2tas(self.mmo, allow_h),
+            aero.vtas2mach(allow_v_tas, h) > self.mmo,
+            aero.vmach2tas(self.mmo, h),
             allow_v_tas,
         )  # maximum cannot exceed MMO
 
@@ -348,29 +351,21 @@ class OpenAP(PerfBase):
         vmax = np.zeros(n)
 
         ifw = np.where(np.logical_and(self.lifttype == coeff.LIFT_FIXWING, mask))[0]
-        vminfw = np.zeros(len(ifw))
-        vmaxfw = np.zeros(len(ifw))
+        phase_ifw = self.phase[ifw]
 
         # fixwing
         # obtain flight envelope for speed, roc, and alt, based on flight phase
+        enroute = (phase_ifw == ph.CL) | (phase_ifw == ph.CR) | (phase_ifw == ph.DE)
+        conditions = [phase_ifw == ph.GD, phase_ifw == ph.IC, enroute, phase_ifw == ph.AP]
 
-        # --- minimum speed ---
-        vminfw = np.where(self.phase[ifw] == ph.NA, 0, vminfw)
-        vminfw = np.where(self.phase[ifw] == ph.IC, self.vminic[ifw], vminfw)
-        vminfw = np.where(
-            (self.phase[ifw] >= ph.CL) | (self.phase[ifw] <= ph.DE), self.vminer[ifw], vminfw
+        vminfw = np.select(
+            conditions, [0, self.vminic[ifw], self.vminer[ifw], self.vminap[ifw]],
+            default=self.vminer[ifw],
         )
-        vminfw = np.where(self.phase[ifw] == ph.AP, self.vminap[ifw], vminfw)
-        vminfw = np.where(self.phase[ifw] == ph.GD, 0, vminfw)
-
-        # --- maximum speed ---
-        vmaxfw = np.where(self.phase[ifw] == ph.NA, self.vmaxer[ifw], vmaxfw)
-        vmaxfw = np.where(self.phase[ifw] == ph.IC, self.vmaxic[ifw], vmaxfw)
-        vmaxfw = np.where(
-            (self.phase[ifw] >= ph.CL) | (self.phase[ifw] <= ph.DE), self.vmaxer[ifw], vmaxfw
+        vmaxfw = np.select(
+            conditions, [self.vmaxic[ifw], self.vmaxic[ifw], self.vmaxer[ifw], self.vmaxap[ifw]],
+            default=self.vmaxer[ifw],
         )
-        vmaxfw = np.where(self.phase[ifw] == ph.AP, self.vmaxap[ifw], vmaxfw)
-        vmaxfw = np.where(self.phase[ifw] == ph.GD, self.vmaxic[ifw], vmaxfw)
 
         # rotor
         ir = np.where(np.logical_and(self.lifttype == coeff.LIFT_ROTOR, mask))[0]

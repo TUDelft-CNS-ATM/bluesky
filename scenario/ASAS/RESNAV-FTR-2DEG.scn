@@ -1,0 +1,19 @@
+# RESNAV TEST
+# Test resume navigation with the Free-To-Revert (FTR) method
+# Two aircraft on a shallow angle (2 deg) conflict at FL300
+# Near-parallel tracks are the geometry PastCPA needs its bouncing guard for
+# FTR instead holds the resolution until reverting to the autopilot velocity
+# genuinely clears the intruder.
+
+00:00:00.00>PAN -0.9 119.8
+00:00:00.00>ASAS ON
+00:00:00.00>RESO MVP
+
+00:00:00.00>RESNAV FTR
+# FTRINTET can be OFF | ASSUMED | DECLARED
+# 00:00:00.00>FTRINTENT DECLARED
+
+00:00:00.00>CRE GA001 B737 -0.900000,119.800000 0 FL300 200
+00:00:00.00>CRECONFS GA002 B737 GA001 2 0 200 0 0 200
+
+00:00:00.00>ECHO Conflict between GA001 and GA002 - shallow angle (2 deg) at FL300

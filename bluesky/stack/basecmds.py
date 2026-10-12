@@ -329,7 +329,8 @@ def initbasecmds():
             "SEED value",
             "int",
             bs.sim.setseed,
-            "Set seed for all functions using a randomizer (e.g.mcre,noise)",
+            "Set seed for all functions using a randomizer (e.g.mcre,noise).\n"
+            "Runs reproduce on the same machine with the same compiled/Python backend.",
         ],
         "THR": [
             "THR acid, IDLE/0.0/throttlesetting/1.0/AUTO(default)",

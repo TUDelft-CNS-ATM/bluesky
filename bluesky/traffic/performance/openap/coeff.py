@@ -109,10 +109,9 @@ class Coefficient:
             )
 
             limits_fixwing[mdl]["vsmin"] = min(
-                wrap.initclimb_vs()[_MIN],
-                wrap.climb_vs_pre_concas()[_MIN],
-                wrap.climb_vs_concas()[_MIN],
-                wrap.climb_vs_conmach()[_MIN],
+                wrap.descent_vs_conmach()[_MIN],
+                wrap.descent_vs_concas()[_MIN],
+                wrap.descent_vs_post_concas()[_MIN],
             )
 
         return limits_fixwing

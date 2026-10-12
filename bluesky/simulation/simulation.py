@@ -318,6 +318,12 @@ class Simulation(Base):
 
     @staticmethod
     def setseed(value):
-        ''' Set random seed for this simulation. '''
+        ''' Set random seed for this simulation.
+
+            A seeded run gives the same results when repeated on the same
+            machine, with the same BlueSky and numpy versions and the same
+            prefer_compiled setting. The compiled and Python backends differ
+            in the last bits of their results, which can grow into different
+            trajectories, e.g. through conflict resolution. '''
         seed(value)
         np.random.seed(value)

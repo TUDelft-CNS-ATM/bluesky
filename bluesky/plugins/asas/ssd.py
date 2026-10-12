@@ -58,17 +58,6 @@ class SSD(ConflictResolution):
         import sys
         return "pyclipper" in sys.modules
 
-    def detect(asas, traf):
-        """ Detect all current conflicts """
-
-        # Check if ASAS is ON first!
-        if not asas.swasas:
-            return
-
-        # Construct the SSD
-        constructSSD(asas, traf)
-
-
     def resolve(self, conf, ownship, intruder):
         # Initialize SSD variables with ntraf
         self.initializeSSD(conf, ownship.ntraf)
@@ -199,7 +188,7 @@ class SSD(ConflictResolution):
         ind1, ind2 = self.qdrdist_matrix_indices(ntraf)
         # Get absolute bearing [deg] and distance [nm]
         # Not sure abs/rel, but qdr is defined from [-180,180] deg, w.r.t. North
-        [qdr, dist] = geo.qdrdist_matrix(lat[ind1], lon[ind1], lat[ind2], lon[ind2])
+        [qdr, dist] = geo.qdrdist(lat[ind1], lon[ind1], lat[ind2], lon[ind2])
         # Put result of function from matrix to ndarray
         qdr = np.reshape(np.array(qdr), np.shape(ind1))
         dist = np.reshape(np.array(dist), np.shape(ind1))

@@ -95,22 +95,24 @@ def qdrdist(latd1, lond1, latd2, lond2):
     lat2 = np.radians(latd2)
     lon2 = np.radians(lond2)
 
-    #root = sin1 * sin1 + coslat1 * coslat2 * sin2 * sin2
-    #d    =  2.0 * r * np.arctan2(np.sqrt(root) , np.sqrt(1.0 - root))
-    # d =2.*r*np.arcsin(np.sqrt(sin1*sin1 + coslat1*coslat2*sin2*sin2))
-
-    # Corrected to avoid "nan" at westward direction
-    d = r*np.arccos(np.cos(lat1)*np.cos(lat2)*np.cos(lon2-lon1) + \
-                 np.sin(lat1)*np.sin(lat2))
-
-    # Bearing from Ref. http://www.movable-type.co.uk/scripts/latlong.html
-
-    # sin1 = np.sin(0.5 * (lat2 - lat1))
-    # sin2 = np.sin(0.5 * (lon2 - lon1))
-
     coslat1 = np.cos(lat1)
     coslat2 = np.cos(lat2)
 
+    # Distance with the Haversine formula:
+    #   a = sin²(Δφ/2) + cos φ1 ⋅ cos φ2 ⋅ sin²(Δλ/2)
+    #   c = 2 ⋅ atan2( √a, √(1−a) )
+    #   d = R ⋅ c
+    # where φ is latitude, λ is longitude, and R is the earth's radius.
+    # a is clipped, because rounding can push it just above 1.
+    # Ref. http://www.movable-type.co.uk/scripts/latlong.html
+    sindlat2 = np.sin(0.5 * (lat2 - lat1))  # sin(Δφ/2)
+    sindlon2 = np.sin(0.5 * (lon2 - lon1))  # sin(Δλ/2)
+    root = np.clip(sindlat2**2 + coslat1 * coslat2 * sindlon2**2, 0.0, 1.0)  # a
+    d    = 2.0 * r * np.arctan2(np.sqrt(root), np.sqrt(1.0 - root))  # R ⋅ c
+
+    # Initial bearing:
+    #   θ = atan2( sin Δλ ⋅ cos φ2 , cos φ1 ⋅ sin φ2 − sin φ1 ⋅ cos φ2 ⋅ cos Δλ )
+    # Ref. http://www.movable-type.co.uk/scripts/latlong.html
     qdr = np.degrees(np.arctan2(np.sin(lon2 - lon1) * coslat2,
                                 coslat1 * np.sin(lat2) -
                                 np.sin(lat1) * coslat2 * np.cos(lon2 - lon1)))
@@ -125,18 +127,20 @@ def qdrdist_matrix(lat1, lon1, lat2, lon2):
         Out:
             qdr [deg] = heading from 1 to 2 (matrix)
             d [nm]    = distance from 1 to 2 in nm (matrix) """
+    lat1, lon1, lat2, lon2 = (np.asmatrix(x) for x in (lat1, lon1, lat2, lon2))
     prodla =  lat1.T * lat2
     condition = prodla < 0
 
     r = np.zeros(prodla.shape)
-    r = np.where(condition, r, rwgs84_matrix(lat1.T + lat2))
+    # Same hemisphere: earth radius at the mean latitude of each pair
+    r = np.where(condition, r, rwgs84_matrix(0.5 * (lat1.T + lat2)))
 
     a = 6378137.0
 
     r = np.where(np.invert(condition), r, (np.divide(np.multiply
       (0.5, ((np.multiply(abs(lat1), (rwgs84_matrix(lat1)+a))).T +
          np.multiply(abs(lat2), (rwgs84_matrix(lat2)+a)))),
-            (abs(lat1)).T+(abs(lat2)+(lat1 == 0.)*0.000001))))  # different hemisphere
+            np.maximum(0.000001, (abs(lat1)).T + abs(lat2)))))  # different hemisphere
 
     diff_lat = lat2-lat1.T
     diff_lon = lon2-lon1.T
@@ -178,7 +182,7 @@ def latlondist(latd1, lond1, latd2, lond2):
         Input:
               two lat/lon positions in degrees
         Out:
-              distance in meters !!!! """
+              distance in meters !!!! (unlike latlondist_matrix, which returns nm) """
 
     # Haversine with average radius
 
@@ -193,7 +197,7 @@ def latlondist(latd1, lond1, latd2, lond2):
     r1 = rwgs84(latd1)
     r2 = rwgs84(latd2)
     res2  = 0.5*(abs(latd1)*(r1+a) + abs(latd2)*(r2+a)) / \
-        (abs(latd1)+abs(latd2))
+        (np.maximum(0.000001, abs(latd1)+abs(latd2)))
 
     # Condition
     sw = (latd1*latd2 >= 0.)
@@ -224,18 +228,20 @@ def latlondist_matrix(lat1, lon1, lat2, lon2):
         Input:
               two lat/lon position vectors in degrees
         Out:
-              distance vector in meters !!!! """
+              distance matrix in nm !!!! (unlike latlondist, which returns meters) """
+    lat1, lon1, lat2, lon2 = (np.asmatrix(x) for x in (lat1, lon1, lat2, lon2))
     prodla =  lat1.T*lat2
     condition = prodla < 0
 
-    r = np.zeros(len(prodla))
-    r = np.where(condition, r, rwgs84_matrix(lat1.T+lat2))
+    r = np.zeros(prodla.shape)
+    # Same hemisphere: earth radius at the mean latitude of each pair
+    r = np.where(condition, r, rwgs84_matrix(0.5 * (lat1.T + lat2)))
 
     a = 6378137.0
     r = np.where(np.invert(condition), r, (np.divide(np.multiply(0.5,
         ((np.multiply(abs(lat1), (rwgs84_matrix(lat1)+a))).T +
             np.multiply(abs(lat2), (rwgs84_matrix(lat2)+a)))),
-            (abs(lat1)).T+(abs(lat2)))))  # different hemisphere
+            np.maximum(0.000001, (abs(lat1)).T + abs(lat2)))))  # different hemisphere
 
     diff_lat = lat2-lat1.T
     diff_lon = lon2-lon1.T
@@ -322,13 +328,15 @@ def kwikdist_matrix(lata, lona, latb, lonb):
     In:
         lat/lon, lat/lon vectors [deg]
     Out:
-        dist vector [nm]
+        dist matrix [nm]
     """
+    lata, lona, latb, lonb = (np.asmatrix(x) for x in (lata, lona, latb, lonb))
 
     re      = 6371000.  # readius earth [m]
+    # Rows are points in a, columns are points in b
     dlat    = np.radians(latb - lata.T)
     dlon    = np.radians(((lonb - lona.T)+180)%360-180)
-    cavelat = np.cos(np.radians(lata + latb.T) * 0.5)
+    cavelat = np.cos(np.radians(lata.T + latb) * 0.5)
 
     dangle  = np.sqrt(np.multiply(dlat, dlat) +
                       np.multiply(np.multiply(dlon, dlon),
@@ -358,6 +366,7 @@ def kwikqdrdist(lata, lona, latb, lonb):
 def kwikqdrdist_matrix(lata, lona, latb, lonb):
     """Gives quick and dirty qdr[deg] and dist [nm] matrices
        from lat/lon vectors. (note: does not work well close to poles)"""
+    lata, lona, latb, lonb = (np.asmatrix(x) for x in (lata, lona, latb, lonb))
 
     re      = 6371000.  # radius earth [m]
     dlat    = np.radians(latb - lata.T)
