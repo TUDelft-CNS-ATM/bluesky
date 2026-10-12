@@ -1,4 +1,5 @@
 ''' BlueSky resource access '''
+from importlib.machinery import ModuleSpec
 import shutil
 import itertools
 from pathlib import Path
@@ -18,7 +19,7 @@ except ImportError:
         if '.' in package:
             package, res = package.split('.', 1)
         s = find_spec(package)
-        if s.submodule_search_locations:
+        if isinstance(s, ModuleSpec) and s.submodule_search_locations:
             p = Path(s.submodule_search_locations[0])
         else:
             p = Path(package)
@@ -95,23 +96,33 @@ class ResourcePath(MultiplexedPath):
     __truediv__ = joinpath
 
 
-def resource(*descendants):
-    ''' Get a path pointing to a BlueSky resource.
+class Resource:
+    ''' Callable that gets a path pointing to a BlueSky resource.
 
-        Arguments:
-        - descendants: Zero or more path-like objects (Path or str)
-
-        Returns:
-        - Path pointing to resource (file or directory)
-          If arguments form an absolute path it is returned directly,
-          otherwise a path relative to BlueSky's resource paths is returned.
+        A class rather than a function, so type checkers know about path.
     '''
-    ret = Path(*descendants)
-    if ret.is_absolute():
-        return ret
+    # BlueSky's resource paths; init() adds the working directory
+    path: ResourcePath = ResourcePath()
 
-    return resource.path.joinpath(*descendants)
-resource.path = ResourcePath()
+    def __call__(self, *descendants):
+        ''' Get a path pointing to a BlueSky resource.
+
+            Arguments:
+            - descendants: Zero or more path-like objects (Path or str)
+
+            Returns:
+            - Path pointing to resource (file or directory)
+              If arguments form an absolute path it is returned directly,
+              otherwise a path relative to BlueSky's resource paths is returned.
+        '''
+        ret = Path(*descendants)
+        if ret.is_absolute():
+            return ret
+
+        return self.path.joinpath(*descendants)
+
+
+resource = Resource()
 
 
 def init(workdir=None):
@@ -146,11 +157,12 @@ def init(workdir=None):
     cfgfile = workdir.joinpath("settings.cfg")
     if not cfgfile.exists():
         print(f'Copying default configfile to {cfgfile}')
-        shutil.copy(resource('default.cfg'), cfgfile)
+        shutil.copy(resource('default.cfg').as_posix(), cfgfile)
 
     # Set correct search paths for plugins
     plugins = import_module('bluesky.plugins')
-    plugins.__spec__.submodule_search_locations.insert(0, workdir.joinpath('plugins').as_posix())
+    if isinstance(plugins.__spec__, ModuleSpec) and isinstance(plugins.__spec__.submodule_search_locations, list):
+        plugins.__spec__.submodule_search_locations.insert(0, workdir.joinpath('plugins').as_posix())
 
     # Set correct search paths for resource function
     resource.path = ResourcePath(workdir)
