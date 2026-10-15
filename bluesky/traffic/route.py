@@ -1116,7 +1116,7 @@ class Route(Base):
 
         # Update turn data
         bs.traf.actwp.turnrad[acidx]      = turnrad
-        bs.traf.actwp.turnspd[acidx]      = turnspd
+        bs.traf.actwp.turnspd[acidx]      = turnspd if bs.traf.actwp.flyturn[acidx] else -990.
         bs.traf.actwp.turnhdgr[acidx]     = turnhdgr
         bs.traf.ap.turnphi[acidx] = np.deg2rad(turnbank)
 
