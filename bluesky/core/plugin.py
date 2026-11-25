@@ -12,6 +12,34 @@ from bluesky import stack
 settings.set_variable_defaults(plugin_path='plugins', enabled_plugins=['datafeed'])
 
 
+def _plugin_files(root):
+    ''' Yield plugin files along their import paths and skip directory cycles. '''
+    pending = [(root, frozenset())]
+    while pending:
+        path, ancestors = pending.pop()
+        try:
+            target = path.resolve(strict=True)
+            if target in ancestors:
+                continue
+            entries = list(path.iterdir())
+        except (OSError, RuntimeError):
+            # Older Python versions raise RuntimeError for symlink loops.
+            continue
+
+        directories = []
+        for entry in entries:
+            try:
+                if entry.is_dir():
+                    directories.append(entry)
+                elif entry.match('*.py') and entry.is_file():
+                    yield entry
+            except OSError:
+                continue
+
+        ancestors = ancestors | {target}
+        pending.extend((directory, ancestors) for directory in reversed(directories))
+
+
 class Plugin:
     ''' BlueSky plugin class.
         This class is used internally to store information about bluesky
@@ -88,11 +116,15 @@ class Plugin:
     def find_plugins(cls, reqtype):
         ''' Create plugin wrapper objects based on source code of potential plug-in files. '''
         for path in (Path(p) for p in plugins.__spec__.submodule_search_locations):
-            for fname in path.glob('**/*.py'):
+            for fname in _plugin_files(path):
                 submod = fname.relative_to(path).parent.as_posix().replace('/', '.')
                 fullname = f'bluesky.plugins.{fname.stem}' if submod == '.' else \
                            f'bluesky.plugins.{submod}.{fname.stem}'
-                with open(fname, 'rb') as f:
+                try:
+                    plugin_file = fname.open('rb')
+                except (FileNotFoundError, PermissionError):
+                    continue
+                with plugin_file as f:
                     source = f.read()
                     try:
                         tree = ast.parse(source)
