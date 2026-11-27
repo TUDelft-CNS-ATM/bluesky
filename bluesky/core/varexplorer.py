@@ -32,7 +32,12 @@ def getvarsfromobj(obj):
     ''' Return a list with the names of the variables of the passed object.'''
     try:
         # Return attribute names, but exclude private attributes
-        return [name for name in vars(obj) if not name[0] == '_']
+        names = [name for name in vars(obj) if not name[0] == '_']
+        for cls in type(obj).__mro__:
+            for name, attr in vars(cls).items():
+                if not name[0] == '_' and isinstance(attr, property) and name not in names:
+                    names.append(name)
+        return names
     except TypeError:
         return None
 

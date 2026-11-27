@@ -44,8 +44,8 @@ class Simulation(Base):
         # Simulation time [seconds]
         self.simt = 0.0
 
-        # Simulation timestep [seconds]
-        self.simdt = bs.settings.simdt
+        # Simulation timestep [seconds] (updated from simtime; use DT or settings.simdt to change)
+        self._simdt = bs.settings.simdt
 
         # Simulation timestep multiplier: run sim at n x speed
         self.dtmult = 1.0
@@ -62,6 +62,11 @@ class Simulation(Base):
 
         # Keep track of known clients
         self.clients = set()
+
+    @property
+    def simdt(self):
+        ''' Simulation timestep [seconds]. Read-only; change via DT or bs.settings.simdt. '''
+        return self._simdt
 
     @pub_simstate.payload
     def get_state(self):
@@ -117,8 +122,8 @@ class Simulation(Base):
             datalog.update()
             hooks.preupdate.trigger()
 
-            # Determine interval towards next timestep                
-            self.simt, self.simdt = simtime.step(dt_increment)
+            # Determine interval towards next timestep
+            self.simt, self._simdt = simtime.step(dt_increment)
 
             # Update UTC time
             self.utc += datetime.timedelta(seconds=self.simdt)
@@ -204,7 +209,7 @@ class Simulation(Base):
         self.state = bs.INIT
         self.syst = -1.0
         self.simt = 0.0
-        self.simdt = bs.settings.simdt
+        self._simdt = bs.settings.simdt
         simtime.reset()
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
