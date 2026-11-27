@@ -169,6 +169,7 @@ class Autopilot(Entity, replaceable=True):
                 bs.traf.swlnav[i] = False
                 bs.traf.swvnav[i] = False
                 bs.traf.swvnavspd[i] = False
+                self.route[i].flag_lastwp_passed = True
                 continue # Go to next a/c which reached its active waypoint
 
             # Special turns: specified by one or two of the following variables:
@@ -198,6 +199,8 @@ class Autopilot(Entity, replaceable=True):
             # Switch off LNAV if it failed to get next wpdata
             if not lnavon and bs.traf.swlnav[i]:
                 bs.traf.swlnav[i] = False
+                if not self.route[i].flag_landed_runway:
+                    self.route[i].flag_lastwp_passed = True
                 # Last wp: copy last wp values for alt and speed in autopilot
                 if bs.traf.swvnavspd[i] and bs.traf.actwp.nextspd[i]>= 0.0:
                     bs.traf.selspd[i] = bs.traf.actwp.nextspd[i]
