@@ -89,6 +89,7 @@ class Route(Base):
         # runway heading
         # default: False
         self.flag_landed_runway = False
+        self.flag_lastwp_passed = False
 
         self.wpdirfrom = []  # [deg] direction leg to wp
         self.wpdirto   = []  # [deg] direction leg from wp
@@ -606,6 +607,9 @@ class Route(Base):
 
         #update qdr and "last waypoint switch" in traffic
         if idx>=0:
+            if self.flag_lastwp_passed:
+                self.iactwp = idx
+                self.flag_lastwp_passed = False
             bs.traf.actwp.next_qdr[iac] = self.getnextqdr()
             bs.traf.actwp.swlastwp[iac] = (self.iactwp==self.nwp-1)
             
@@ -1005,8 +1009,15 @@ class Route(Base):
                 if len(self.wplat) == 1:
                     self.iactwp = 0
 
+        # Update active waypoint before refreshing next_qdr and swlastwp
+        if wpok and self.iactwp < 0:
+            self.iactwp = 0
+
         #update qdr and "last waypoint switch" in traffic
         if idx>=0:
+            if wpok and self.flag_lastwp_passed and wptype != Route.orig:
+                self.iactwp = idx
+                self.flag_lastwp_passed = False
             bs.traf.actwp.next_qdr[iac] = self.getnextqdr()
             bs.traf.actwp.swlastwp[iac] = (self.iactwp==self.nwp-1)
 
@@ -1015,11 +1026,7 @@ class Route(Base):
             self.calcfp()
 
         # Update autopilot settings
-        # If we added a waypoint but iactwp is still -1, make it 0
-        if wpok and self.iactwp < 0:
-            self.iactwp = 0
-            
-        if wpok and 0 <= self.iactwp < self.nwp:
+        if wpok and 0 <= self.iactwp < self.nwp and not self.flag_lastwp_passed:
             self.direct(iac, self.wpname[self.iactwp])
 
         return idx
@@ -1035,6 +1042,8 @@ class Route(Base):
         wpidx = acrte.wpname.index(wpname)
 
         acrte.iactwp = wpidx
+        acrte.flag_lastwp_passed = False
+        bs.traf.actwp.swlastwp[acidx] = (acrte.iactwp == acrte.nwp - 1)
         bs.traf.actwp.lat[acidx]    = acrte.wplat[wpidx]
         bs.traf.actwp.lon[acidx]    = acrte.wplon[wpidx]
         bs.traf.actwp.flyby[acidx]  = acrte.wpflyby[wpidx]
@@ -1392,9 +1401,13 @@ class Route(Base):
 
         # If no waypoints left, make sure to disable LNAV/VNAV
         if acrte.nwp==0 and (acidx or acidx==0):
+            acrte.flag_lastwp_passed = False
             bs.traf.swlnav[acidx]    =  False
             bs.traf.swvnav[acidx]    =  False
             bs.traf.swvnavspd[acidx] =  False
+        elif acrte.nwp > 0 and 0 <= acrte.iactwp < acrte.nwp:
+            bs.traf.actwp.next_qdr[acidx] = acrte.getnextqdr()
+            bs.traf.actwp.swlastwp[acidx] = (acrte.iactwp == acrte.nwp - 1)
 
         return True
 
